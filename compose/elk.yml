@@ -14,7 +14,7 @@ elasticsearch:
 logstash:
   container_name: logstash
   restart: always
-  image: accenture/adop-logstash:0.1.0
+  image: liatrio/ldop-logstash:0.1.0
   net: ${CUSTOM_NETWORK_NAME}
   environment:
     - "constraint:tier==public"
