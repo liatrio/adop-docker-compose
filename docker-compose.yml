@@ -24,7 +24,7 @@ ldap:
   container_name: ldap
   restart: always
   #build: ../images/docker-ldap/
-  image: accenture/adop-ldap:0.1.3
+  image: liatrio/ldop-ldap:0.1.4
   net: ${CUSTOM_NETWORK_NAME}
   expose:
     - "389"
@@ -56,7 +56,7 @@ gerrit:
   container_name: gerrit
   restart: always
   #build: ../images/docker-gerrit/
-  image: accenture/adop-gerrit:0.1.3
+  image: liatrio/ldop-gerrit:0.1.0
   privileged: true
   net: ${CUSTOM_NETWORK_NAME}
   expose:
@@ -107,7 +107,7 @@ sensu-uchiwa:
 sensu-api:
   container_name: sensu-api
   restart: always
-  image: accenture/adop-sensu:0.2.0
+  image: liatrio/ldop-sensu:0.1.0
   net: ${CUSTOM_NETWORK_NAME}
   command: api
   expose:
@@ -120,7 +120,7 @@ sensu-api:
 sensu-server:
   container_name: sensu-server
   restart: always
-  image: accenture/adop-sensu:0.2.0
+  image: liatrio/ldop-sensu:0.1.0
   net: ${CUSTOM_NETWORK_NAME}
   command: server
   environment:
@@ -132,7 +132,7 @@ sensu-server:
 sensu-client:
   container_name: sensu-client
   restart: always
-  image: accenture/adop-sensu:0.2.0
+  image: liatrio/ldop-sensu:0.1.0
   net: ${CUSTOM_NETWORK_NAME}
   command: client
   environment:
@@ -178,7 +178,7 @@ sonar-mysql:
 sonar:
   container_name: sonar
   restart: always
-  image: accenture/adop-sonar:0.2.0
+  image: liatrio/ldop-sonar:0.1.0
   #build: ../images/docker-sonar/
   net: ${CUSTOM_NETWORK_NAME}
   expose:
@@ -202,7 +202,7 @@ sonar:
 jenkins:
   container_name: jenkins
   restart: always
-  image: accenture/adop-jenkins:0.2.6
+  image: liatrio/ldop-jenkins:0.1.0
   #build: ../images/docker-jenkins/
   net: ${CUSTOM_NETWORK_NAME}
   ports:
@@ -260,7 +260,7 @@ jenkins:
 jenkins-slave:
   container_name: jenkins-slave
   restart: always
-  image: accenture/adop-jenkins-slave:0.1.4
+  image: liatrio/ldop-jenkins-slave:0.1.0
   net: ${CUSTOM_NETWORK_NAME}
   privileged: true
   environment:
@@ -303,7 +303,7 @@ selenium-node-firefox:
 nexus:
   container_name: nexus
   restart: always
-  image:  accenture/adop-nexus:0.1.3
+  image:  liatrio/ldop-nexus:0.1.0
   net: ${CUSTOM_NETWORK_NAME}
   expose:
     - "8081"
@@ -321,7 +321,7 @@ nexus:
 ldap-ltb:
   container_name: ldap-ltb
   restart: always
-  image: accenture/adop-ldap-ltb:0.1.0
+  image: liatrio/ldop-ldap-ltb:0.1.0
   net: ${CUSTOM_NETWORK_NAME}
   expose:
     - "80"
@@ -334,7 +334,7 @@ ldap-ltb:
 ldap-phpadmin:
   container_name: ldap-phpadmin
   restart: always
-  image: accenture/adop-ldap-phpadmin:0.1.0
+  image: liatrio/ldop-ldap-phpadmin:0.1.0
   net: ${CUSTOM_NETWORK_NAME}
   expose:
     - "80"
