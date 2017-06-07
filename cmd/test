@@ -1,0 +1,64 @@
+#!/bin/bash -e
+
+SUB_CMD_NAME="test"
+
+cmd_desc() {
+    echo "For confirming LDOP functionality during development."
+}
+
+cmd_usage() {
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} <subcommand>"
+}
+
+help() {
+    cmd_usage
+    echo
+    echo "Available subcommands are:"
+    printf "    %-20s   %s\n" "down" "Test that \"LDOP compose down\" is working properly."
+    printf "    %-20s   %s\n" "up" "Test that \"LDOP compose up\" is working properly."
+    printf "    %-20s   %s\n" "all" "Run all tests."
+    printf "    %-20s   %s\n" "help" "Prints this help information"
+    echo
+}
+
+down() {
+  echo "testing down"
+}
+
+up() {
+  echo "testing up"
+}
+
+all() {
+  echo "running all tests"
+}
+
+shift $(($OPTIND -1))
+SUBCOMMAND_OPT="${1:-help}"
+
+# Only shift if there are other parameters
+if [ $# -ge 1 ]; then
+    shift
+fi
+
+if [ ! -z ${SUBCOMMAND_OPT} ]; then
+  case ${SUBCOMMAND_OPT} in
+    "cmd_desc"|"help")
+        ${SUBCOMMAND_OPT}
+        ;;
+    "all")
+        all
+        ;;
+    "down")
+        down
+        ;;
+    "up")
+        up
+        ;;
+    *)
+        echo "Invalid subcommand."
+        help
+        exit 1
+        ;;
+  esac
+fi
