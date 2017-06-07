@@ -14,23 +14,25 @@ help() {
     cmd_usage
     echo
     echo "Available subcommands are:"
-    printf "    %-20s   %s\n" "down" "Test that \"LDOP compose down\" is working properly."
-    printf "    %-20s   %s\n" "up" "Test that \"LDOP compose up\" is working properly."
-    printf "    %-20s   %s\n" "all" "Run all tests."
+    printf "    %-20s   %s\n" "clean" "Test functionality given a clean environment."
     printf "    %-20s   %s\n" "help" "Prints this help information"
     echo
 }
 
-down() {
-  echo "testing down"
-}
-
-up() {
-  echo "testing up"
-}
-
-all() {
-  echo "running all tests"
+clean() {
+  echo
+  echo "#######################"
+  echo "# Testing in Progress #"
+  echo "#######################"
+  echo
+  sleep 1
+  ./cmd/compose down --volumes
+  ./cmd/compose init --without-load --without-pull
+  echo
+  echo "#######################"
+  echo "#  Testing Complete   #"
+  echo "#######################"
+  echo
 }
 
 shift $(($OPTIND -1))
@@ -46,14 +48,8 @@ if [ ! -z ${SUBCOMMAND_OPT} ]; then
     "cmd_desc"|"help")
         ${SUBCOMMAND_OPT}
         ;;
-    "all")
-        all
-        ;;
-    "down")
-        down
-        ;;
-    "up")
-        up
+    "clean")
+        clean
         ;;
     *)
         echo "Invalid subcommand."
