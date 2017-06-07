@@ -26,8 +26,29 @@ clean() {
   echo "#######################"
   echo
   sleep 1
-  ./cmd/compose down --volumes
-  ./cmd/compose init --without-load --without-pull
+
+  #./cmd/compose down --volumes
+  #./cmd/compose init --without-load --without-pull
+
+  JOB_URL=localhost/jenkins/job/Load_Platform
+  GREP_RETURN_CODE=0
+
+  source ${CONF_DIR}/conf/env.provider.sh
+  source ${CONF_DIR}/credentials.generate.sh
+  source ${CONF_DIR}/env.config.sh
+
+  # Start the build
+  curl -s --data '' jenkins:${PASSWORD_JENKINS}@$JOB_URL/buildWithParameters
+
+  # Poll every thirty seconds until the build is finished
+  while [ $GREP_RETURN_CODE -eq 0 ]
+  do
+    sleep 15
+    # Grep will return 0 while the build is running:
+    curl -s jenkins:${PASSWORD_JENKINS}@$JOB_URL/lastBuild/api/python?pretty=true | grep -n "result\" : None"
+    GREP_RETURN_CODE=$?
+  done
+
   echo
   echo "#######################"
   echo "#  Testing Complete   #"
