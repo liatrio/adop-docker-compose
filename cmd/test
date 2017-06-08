@@ -90,6 +90,24 @@ basic() {
   echo "#  Testing Complete   #"
   echo "#######################"
   echo
+
+  echo
+  echo "#######################"
+  echo "#  Testing Results:   #"
+  echo "#######################"
+  echo
+
+  echo
+  echo "Load_Platform Build Result: $RESULT"
+  echo
+  echo "Docker Containers with Non-running Statuses:"
+  docker ps -f "status=created" --format "{{.Names}}: {{.Status}}"
+  docker ps -f "status=restarting" --format "{{.Names}}: {{.Status}}"
+  docker ps -f "status=removing" --format "{{.Names}}: {{.Status}}"
+  docker ps -f "status=paused" --format "{{.Names}}: {{.Status}}"
+  docker ps -f "status=exited" --format "{{.Names}}: {{.Status}}"
+  docker ps -f "status=dead" --format "{{.Names}}: {{.Status}}"
+  echo
 }
 
 shift $(($OPTIND -1))
