@@ -11,34 +11,41 @@ cmd_usage() {
 }
 
 help() {
+    echo
     cmd_usage echo
+    echo
     echo "Available subcommands are:"
-    printf "    %-20s   %s\n" "clean" "Test functionality given a clean environment."
+    printf "    %-20s   %s\n" "basic" "Test basic functionality."
     printf "    %-20s   %s\n" "help" "Prints this help information"
     echo
 }
 
-clean() {
+basic() {
   echo
   echo "#######################"
   echo "# Testing in Progress #"
   echo "#######################"
   echo
-  sleep 1
+ 
+  echo "/adop compose down --volumes"
+  ${CONF_DIR}/adop compose down --volumes
+  
+  echo "/adop compose init --without-pull"
+  ${CONF_DIR}/adop compose init --without-load
 
-  #./cmd/compose down --volumes
-  #./cmd/compose init --without-pull
+  # Sources to obtain the password for Jenkins
+  source ${CONF_DIR}/conf/env.provider.sh
+  source ${CONF_DIR}/credentials.generate.sh
+  source ${CONF_DIR}/env.config.sh 
+
+  ############### Test if Load_Platform job works properly ###############
+  echo "Testing if Load_Platform job is successful..."
 
   # The URL of the job Load_Platform as hit from within the Jenkins container
   JOB_URL=localhost:8080/jenkins/job/Load_Platform
 
   # A value to determine if the job is currently executing
   GREP_RETURN_CODE=0
-
-  # Sources to obtain the password for Jenkins
-  source ${CONF_DIR}/conf/env.provider.sh
-  source ${CONF_DIR}/credentials.generate.sh
-  source ${CONF_DIR}/env.config.sh 
 
   # Trigger the parameterized job with default parameters.
   # -s silent, don't output curl details
@@ -66,7 +73,7 @@ clean() {
     then
       # Grep will return 0 (successfully obtained null result) 
       # while the build is running
-      echo $CURL | grep result\":null > /dev/null
+      echo $CURL | grep building\":true > /dev/null
       GREP_RETURN_CODE=$?
     fi
     # If the curl command errored, sleep and try again
@@ -75,6 +82,8 @@ clean() {
   echo "...Load_Platform job completed! Build Status: $RESULT"
 
   set -e
+  
+  ############### Tested if Load_Platform job works properly ###############
 
   echo
   echo "#######################"
@@ -96,8 +105,8 @@ if [ ! -z ${SUBCOMMAND_OPT} ]; then
     "cmd_desc"|"help")
         ${SUBCOMMAND_OPT}
         ;;
-    "clean")
-        clean
+    "basic")
+        basic
         ;;
     *)
         echo "Invalid subcommand."
