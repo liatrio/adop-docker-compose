@@ -25,7 +25,8 @@ basic_help()
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
     printf "    %-2s   %s\n" "" "Options:"
-    printf "    %-3s   %s\n" "" "-w : Execute init with the --without-pull flag."
+    printf "    %-3s   %s\n" "" "-w : Execute init without the --without-pull flag."
+    printf "    %-3s   %s\n" "" "-v : Execute down with the --volumes flag."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
@@ -33,10 +34,14 @@ basic_help()
 basic() {
   # Parameters
   W=0
-  while getopts "wh" opt; do
+  V=0
+  while getopts "wvh" opt; do
     case $opt in
       w)
         W=1
+        ;;
+      v)
+        V=1
         ;;
       h)
         basic_help
@@ -49,23 +54,29 @@ basic() {
         ;;
     esac
   done
-  
+
   echo
   echo "#######################"
   echo "# Testing in Progress #"
   echo "#######################"
   echo
- 
-  echo "/adop compose down --volumes"
-  ${CONF_DIR}/adop compose down --volumes
+
+  if [ $V -eq 0 ]
+  then
+    echo "/adop compose down"
+    ${CONF_DIR}/adop compose down
+  else
+    echo "/adop compose down --volumes"
+    ${CONF_DIR}/adop compose down --volumes
+  fi
 
   if [ $W -eq 0 ]
   then  
-    echo "/adop compose init --without-load"
-    ${CONF_DIR}/adop compose init --without-load
-  else
     echo "/adop compose init --without-load --without-pull"
     ${CONF_DIR}/adop compose init --without-load --without-pull
+  else
+    echo "/adop compose init --without-load"
+    ${CONF_DIR}/adop compose init --without-load
   fi
   
   # Sources to obtain the password for Jenkins
