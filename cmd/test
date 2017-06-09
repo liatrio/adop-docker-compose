@@ -49,8 +49,7 @@ basic() {
         ;;
     esac
   done
-  echo "W: "$W
-  exit
+  
   echo
   echo "#######################"
   echo "# Testing in Progress #"
@@ -59,10 +58,16 @@ basic() {
  
   echo "/adop compose down --volumes"
   ${CONF_DIR}/adop compose down --volumes
-  
-  echo "/adop compose init --without-pull"
-  ${CONF_DIR}/adop compose init --without-load
 
+  if [ $W -eq 0 ]
+  then  
+    echo "/adop compose init --without-load"
+    ${CONF_DIR}/adop compose init --without-load
+  else
+    echo "/adop compose init --without-load --without-pull"
+    ${CONF_DIR}/adop compose init --without-load --without-pull
+  fi
+  
   # Sources to obtain the password for Jenkins
   source ${CONF_DIR}/conf/env.provider.sh
   source ${CONF_DIR}/credentials.generate.sh
