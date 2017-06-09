@@ -20,7 +20,37 @@ help() {
     echo
 }
 
+basic_help() 
+{
+    echo
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
+    printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" "-w : Execute init with the --without-pull flag."
+    printf "    %-3s   %s\n" "" "-h : Prints this help information."
+    echo
+}
+
 basic() {
+  # Parameters
+  W=0
+  while getopts "wh" opt; do
+    case $opt in
+      w)
+        W=1
+        ;;
+      h)
+        basic_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        basic_help
+        exit 1
+        ;;
+    esac
+  done
+  echo "W: "$W
+  exit
   echo
   echo "#######################"
   echo "# Testing in Progress #"
@@ -121,10 +151,10 @@ fi
 if [ ! -z ${SUBCOMMAND_OPT} ]; then
   case ${SUBCOMMAND_OPT} in
     "cmd_desc"|"help")
-        ${SUBCOMMAND_OPT}
+        ${SUBCOMMAND_OPT} "$@"
         ;;
     "basic")
-        basic
+        basic "$@"
         ;;
     *)
         echo "Invalid subcommand."
