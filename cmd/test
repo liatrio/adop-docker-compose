@@ -56,17 +56,26 @@ basic() {
     esac
   done
 
+  echo "...checking if LDOP is currently running..."
+  PS=$(${CONF_DIR}/adop compose ps -q | wc -l)
+
   if [ $F -eq 0 ]
   then
-    echo "This test involves running /adop compose down"
-    read -p "Proceed to shut down running containers? (Y/N)   " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]
+    if [ $PS -gt 4 ]
     then
-      echo "...proceeding..."
-    else
-      echo "Exiting."
-      exit 0
+      echo "This test involves running /adop compose down"
+      read -p "Proceed to shut down running containers? (Y/N)   " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]
+      then
+        echo "...proceeding..."
+        echo "...stopping LDOP..."
+        echo "/adop compose down"
+        ${CONF_DIR}/adop compose down
+      else
+        echo "Exiting."
+        exit 0
+      fi
     fi
   fi
 
@@ -75,10 +84,6 @@ basic() {
   echo "# Testing in Progress #"
   echo "#######################"
   echo
-
-  echo "...stopping LDOP if it is already running..."
-  echo "/adop compose down"
-  ${CONF_DIR}/adop compose down
 
   echo "...starting LDOP with temporary volumes..."
   if [ $W -eq 0 ]
