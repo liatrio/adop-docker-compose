@@ -27,6 +27,7 @@ basic_help()
     echo
     printf "    %-2s   %s\n" "" "Options:"
     printf "    %-3s   %s\n" "" "-w : Execute init without the --without-pull flag."
+    printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
@@ -34,10 +35,14 @@ basic_help()
 basic() {
   # Parameters
   W=0
-  while getopts "wh" opt; do
+  F=0
+  while getopts "wfh" opt; do
     case $opt in
       w)
         W=1
+        ;;
+      f)
+        F=1
         ;;
       h)
         basic_help
@@ -51,15 +56,18 @@ basic() {
     esac
   done
 
-  echo "This test involves running /adop compose down"
-  read -p "Proceed to shut down running containers? (Y/N)   " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]
+  if [ $F -eq 0 ]
   then
-    echo "...proceeding..."
-  else
-    echo "Exiting."
-    exit 0
+    echo "This test involves running /adop compose down"
+    read -p "Proceed to shut down running containers? (Y/N)   " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+      echo "...proceeding..."
+    else
+      echo "Exiting."
+      exit 0
+    fi
   fi
 
   echo
