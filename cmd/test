@@ -24,9 +24,9 @@ basic_help()
 {
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
+    echo
     printf "    %-2s   %s\n" "" "Options:"
     printf "    %-3s   %s\n" "" "-w : Execute init without the --without-pull flag."
-    printf "    %-3s   %s\n" "" "-v : Execute down with the --volumes flag."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
@@ -34,14 +34,10 @@ basic_help()
 basic() {
   # Parameters
   W=0
-  V=0
-  while getopts "wvh" opt; do
+  while getopts "wh" opt; do
     case $opt in
       w)
         W=1
-        ;;
-      v)
-        V=1
         ;;
       h)
         basic_help
@@ -61,22 +57,19 @@ basic() {
   echo "#######################"
   echo
 
-  if [ $V -eq 0 ]
-  then
-    echo "/adop compose down"
-    ${CONF_DIR}/adop compose down
-  else
-    echo "/adop compose down --volumes"
-    ${CONF_DIR}/adop compose down --volumes
-  fi
+  echo "...stopping LDOP if it is already running..."
+  echo "/adop compose down"
+  ${CONF_DIR}/adop compose down
 
+  echo "...starting LDOP with temporary volumes..."
   if [ $W -eq 0 ]
   then  
     echo "/adop compose init --without-load --without-pull"
-    ${CONF_DIR}/adop compose init --without-load --without-pull
+    ${CONF_DIR}/adop compose -v test_local init --without-load --without-pull
   else
+    echo "...-w flag specified; omitting without-pull..."
     echo "/adop compose init --without-load"
-    ${CONF_DIR}/adop compose init --without-load
+    ${CONF_DIR}/adop compose -v test_local init --without-load
   fi
   
   # Sources to obtain the password for Jenkins
@@ -136,6 +129,16 @@ basic() {
   echo "#  Testing Complete   #"
   echo "#######################"
   echo
+  
+  STATS1=$(docker ps -f "status=created" --format "{{.Names}}: {{.Status}}")
+  STATS2=$(docker ps -f "status=restarting" --format "{{.Names}}: {{.Status}}")
+  STATS3=$(docker ps -f "status=removing" --format "{{.Names}}: {{.Status}}")
+  STATS4=$(docker ps -f "status=paused" --format "{{.Names}}: {{.Status}}")
+  STATS5=$(docker ps -f "status=exited" --format "{{.Names}}: {{.Status}}")
+  STATS6=$(docker ps -f "status=dead" --format "{{.Names}}: {{.Status}}")
+
+  echo "...stopping the test and removing volumes..."
+  ${CONF_DIR}/adop compose -v test_local down --volumes
 
   echo
   echo "#######################"
@@ -147,12 +150,13 @@ basic() {
   echo "Load_Platform Build Result: $RESULT"
   echo
   echo "Docker Containers with Non-running Statuses:"
-  docker ps -f "status=created" --format "{{.Names}}: {{.Status}}"
-  docker ps -f "status=restarting" --format "{{.Names}}: {{.Status}}"
-  docker ps -f "status=removing" --format "{{.Names}}: {{.Status}}"
-  docker ps -f "status=paused" --format "{{.Names}}: {{.Status}}"
-  docker ps -f "status=exited" --format "{{.Names}}: {{.Status}}"
-  docker ps -f "status=dead" --format "{{.Names}}: {{.Status}}"
+  echo $STATS1
+  echo $STATS2
+  echo $STATS3
+  echo $STATS4
+  echo $STATS5
+  echo $STATS6
+  echo "...basic test complete."
   echo
 }
 
