@@ -51,6 +51,17 @@ basic() {
     esac
   done
 
+  echo "This test involves running /adop compose down"
+  read -p "Proceed to shut down running containers? (Y/N)   " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]
+  then
+    echo "...proceeding..."
+  else
+    echo "Exiting."
+    exit 0
+  fi
+
   echo
   echo "#######################"
   echo "# Testing in Progress #"
