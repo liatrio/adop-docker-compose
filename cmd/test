@@ -26,7 +26,7 @@ basic_help()
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
     echo
     printf "    %-2s   %s\n" "" "Options:"
-    printf "    %-3s   %s\n" "" "-w : Execute init without the --without-pull flag."
+    printf "    %-3s   %s\n" "" "-w : Execute init --with-pull."
     printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
