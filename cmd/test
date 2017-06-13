@@ -67,15 +67,15 @@ basic() {
     # If there are any items in /adop compose ps...
     if [ "${#AFTER_HEADER}" -gt "0" ] 
     then
-      echo "This test involves running /adop compose down"
-      read -p "Proceed to shut down running containers? (Y/N)   " -n 1 -r
+      echo "This test will unpause any paused LDOP containers and shut them down."
+      read -p "Proceed to shut down running and paused containers? (Y/N)   " -n 1 -r
       echo
       if [[ $REPLY =~ ^[Yy]$ ]]
       then
         echo "...proceeding..."
         echo "...stopping LDOP..."
-        echo "/adop compose down"
-        ${CONF_DIR}/adop compose down
+        ${CONF_DIR}/adop compose unpause 2>/dev/null
+        ${CONF_DIR}/adop compose down 2>/dev/null
       else
         echo "Exiting."
         exit 0
