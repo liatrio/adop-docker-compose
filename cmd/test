@@ -57,11 +57,15 @@ basic() {
   done
 
   echo "...checking if LDOP is currently running..."
-  PS=$(${CONF_DIR}/adop compose ps -q | wc -l)
+  PS=$(${CONF_DIR}/adop compose ps 2>/dev/null)
+
+  # Get all the output after the last occurance of *-\s
+  AFTER_HEADER=${PS##*----}
 
   if [ $F -eq 0 ]
   then
-    if [ $PS -gt 4 ]
+    # If there are any items in /adop compose ps...
+    if [ "${#AFTER_HEADER}" -gt "0" ] 
     then
       echo "This test involves running /adop compose down"
       read -p "Proceed to shut down running containers? (Y/N)   " -n 1 -r
