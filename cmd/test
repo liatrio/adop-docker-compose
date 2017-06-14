@@ -32,6 +32,31 @@ basic_help()
     echo
 }
 
+compose_unpause_all() {
+  echo "...checking which containers are unpaused..."
+  PAUSED_CONTAINERS=$(${CONF_DIR}/adop compose ps 2>/dev/null | grep Paused | \
+  awk -F'[[:space:]]' '{print $1}')
+  if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
+  then
+    COUNT=$(wc -w <<< $PAUSED_CONTAINERS | tr -d '[:space:]')
+    echo "#############################################"
+    echo "There are $COUNT containers paused."
+    echo "The following containers are paused..."
+    echo $PAUSED_CONTAINERS
+    echo "#############################################"
+    for i in $PAUSED_CONTAINERS
+    do
+      echo "...unpausing $i..."
+      ${CONF_DIR}/adop compose unpause $i
+    done
+    echo "#############################################"
+    echo "All containers are now unpaused."
+    echo "#############################################"
+  else
+    echo "There are no containers paused."
+  fi
+}
+
 basic() {
   # Parameters
   W=0
@@ -73,28 +98,7 @@ basic() {
       if [[ $REPLY =~ ^[Yy]$ ]]
       then
         echo "...proceeding..."
-        echo "...checking which containers are unpaused..."
-        PAUSED_CONTAINERS=$(./adop compose ps 2>/dev/null | grep Paused | \
-        awk -F'[[:space:]]' '{print $1}')
-        if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
-        then
-          COUNT=$(wc -w <<< $PAUSED_CONTAINERS | tr -d '[:space:]')
-          echo "#############################################"
-          echo "There are $COUNT containers paused."
-          echo "The following containers are paused..."
-          echo $PAUSED_CONTAINERS
-          echo "#############################################"
-          for i in $PAUSED_CONTAINERS
-          do
-            echo "...unpausing $i..."
-            ${CONF_DIR}/adop compose unpause $i
-          done
-          echo "#############################################"
-          echo "All containers are now unpaused."
-          echo "#############################################"
-        else
-          echo "There are no containers paused."
-        fi
+        compose_unpause_all
         echo "...stopping LDOP..."
         ${CONF_DIR}/adop compose down
       else
