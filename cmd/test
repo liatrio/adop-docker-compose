@@ -1,0 +1,243 @@
+#!/bin/bash
+
+SUB_CMD_NAME="test"
+
+cmd_desc() {
+    echo "For confirming LDOP functionality during development."
+}
+
+cmd_usage() {
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} <subcommand>"
+}
+
+help() {
+    echo
+    cmd_usage echo
+    echo
+    echo "Available subcommands are:"
+    printf "    %-20s   %s\n" "basic" "Test basic functionality."
+    printf "    %-20s   %s\n" "help" "Prints this help information"
+    echo
+}
+
+basic_help() 
+{
+    echo
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
+    echo
+    printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" "-w : Execute init --with-pull."
+    printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+    printf "    %-3s   %s\n" "" "-h : Prints this help information."
+    echo
+}
+
+basic() {
+  # Parameters
+  W=0
+  F=0
+  while getopts "wfh" opt; do
+    case $opt in
+      w)
+        W=1
+        ;;
+      f)
+        F=1
+        ;;
+      h)
+        basic_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        basic_help
+        exit 1
+        ;;
+    esac
+  done
+
+  echo "...checking if LDOP is currently running..."
+  PS=$(${CONF_DIR}/adop compose ps 2>/dev/null)
+
+  # Get all the output after the last occurance of *-\s
+  AFTER_HEADER=${PS##*----}
+
+  if [ $F -eq 0 ]
+  then
+    # If there are any items in /adop compose ps...
+    if [ "${#AFTER_HEADER}" -gt "0" ] 
+    then
+      echo "This test will unpause any paused LDOP containers and shut them down."
+      read -p "Proceed to shut down running and paused containers? (Y/N)   " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]
+      then
+        echo "...proceeding..."
+        echo "...checking which containers are unpaused..."
+        PAUSED_CONTAINERS=$(./adop compose ps 2>/dev/null | grep Paused | \
+        awk -F'[[:space:]]' '{print $1}')
+        if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
+        then
+          COUNT=$(wc -w <<< $PAUSED_CONTAINERS | tr -d '[:space:]')
+          echo "#############################################"
+          echo "There are $COUNT containers paused."
+          echo "The following containers are paused..."
+          echo $PAUSED_CONTAINERS
+          echo "#############################################"
+          for i in $PAUSED_CONTAINERS
+          do
+            echo "...unpausing $i..."
+            ${CONF_DIR}/adop compose unpause $i
+          done
+          echo "#############################################"
+          echo "All containers are now unpaused."
+          echo "#############################################"
+        else
+          echo "There are no containers paused."
+        fi
+        echo "...stopping LDOP..."
+        ${CONF_DIR}/adop compose down
+      else
+        echo "Exiting."
+        exit 0
+      fi
+    fi
+  fi
+
+  echo
+  echo "#######################"
+  echo "# Testing in Progress #"
+  echo "#######################"
+  echo
+
+  echo "...starting LDOP with temporary volumes..."
+  if [ $W -eq 0 ]
+  then  
+    echo "/adop compose init --without-load --without-pull"
+    ${CONF_DIR}/adop compose -v test_local init --without-load --without-pull
+  else
+    echo "...-w flag specified; omitting without-pull..."
+    echo "/adop compose init --without-load"
+    ${CONF_DIR}/adop compose -v test_local init --without-load
+  fi
+  
+  # Sources to obtain the password for Jenkins
+  source ${CONF_DIR}/conf/env.provider.sh
+  source ${CONF_DIR}/credentials.generate.sh
+  source ${CONF_DIR}/env.config.sh 
+
+  ############### Test if Load_Platform job works properly ###############
+  echo "Testing if Load_Platform job is successful..."
+
+  # The URL of the job Load_Platform as hit from within the Jenkins container
+  JOB_URL=localhost:8080/jenkins/job/Load_Platform
+
+  # A value to determine if the job is currently executing
+  GREP_RETURN_CODE=0
+
+  # Trigger the parameterized job with default parameters.
+  # -s silent, don't output curl details
+  # docker exec jenkins, execute from within jenkins container
+  # --data '', execute the curl as a POST
+  # /buildWithParameters, build with default parameters
+  docker exec jenkins curl -s --data '' jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
+  echo "...triggered the job Load_Platform to build with default parameters..."
+
+  # Disable -e as set in ADOP...
+  set +e
+
+  # ...while the successful curl of the lastBuild information
+  # holds a null value as the result...
+  # "while the job is still executing"
+  while [ $GREP_RETURN_CODE -eq 0 ]
+  do
+    # Give the job time to build, check every 30 seconds
+    echo "...waiting 30 seconds for Load_Platform job to execute..."
+    sleep 30
+    CURL=$(docker exec jenkins curl -s jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json)
+    # If the curl command did not error...
+    # (only update the "job currently executing" variable if the curl succeeds)
+    if [ $? -eq 0 ]
+    then
+      # Grep will return 0 (successfully obtained null result) 
+      # while the build is running
+      echo $CURL | grep building\":true > /dev/null
+      GREP_RETURN_CODE=$?
+    fi
+    # If the curl command errored, sleep and try again
+  done
+  RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
+  echo "...Load_Platform job completed! Build Status: $RESULT"
+
+  set -e
+  
+  ############### Tested if Load_Platform job works properly ###############
+
+  echo
+  echo "#######################"
+  echo "#  Testing Complete   #"
+  echo "#######################"
+  echo
+
+  # Assign array indices for each non-running status
+  STATS[1]=$(docker ps -f "status=created" --format "{{.Names}}: {{.Status}}")
+  STATS[2]=$(docker ps -f "status=restarting" --format "{{.Names}}: {{.Status}}")
+  STATS[3]=$(docker ps -f "status=removing" --format "{{.Names}}: {{.Status}}")
+  STATS[4]=$(docker ps -f "status=paused" --format "{{.Names}}: {{.Status}}")
+  STATS[5]=$(docker ps -f "status=exited" --format "{{.Names}}: {{.Status}}")
+  STATS[6]=$(docker ps -f "status=dead" --format "{{.Names}}: {{.Status}}")
+
+  echo "...stopping the test and removing volumes..."
+  ${CONF_DIR}/adop compose -v test_local down --volumes
+
+  echo
+  echo "#######################"
+  echo "#  Testing Results:   #"
+  echo "#######################"
+  echo
+
+  echo
+  echo "Load_Platform Build Result: $RESULT"
+  echo
+  echo "Docker Containers with Non-running Statuses:"
+  # Iterate over the 6 array elements
+  for i in `seq 1 6`
+  do
+    # Store the array element in item
+    item=${STATS[$i]}
+    # If the element contains more than 0 characters...
+    # This is necessary as the docker ps command returns successful even
+    # with no output. That would print a blank line.
+    if [ "${#item}" -gt "0" ]
+    then
+      # Print the non-running statuses...
+      echo ${STATS[$i]}
+    fi
+  done
+  echo "...basic test complete."
+  echo
+}
+
+shift $(($OPTIND -1))
+SUBCOMMAND_OPT="${1:-help}"
+
+# Only shift if there are other parameters
+if [ $# -ge 1 ]; then
+    shift
+fi
+
+if [ ! -z ${SUBCOMMAND_OPT} ]; then
+  case ${SUBCOMMAND_OPT} in
+    "cmd_desc"|"help")
+        ${SUBCOMMAND_OPT} "$@"
+        ;;
+    "basic")
+        basic "$@"
+        ;;
+    *)
+        echo "Invalid subcommand."
+        help
+        exit 1
+        ;;
+  esac
+fi
