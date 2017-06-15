@@ -34,33 +34,33 @@ basic_help()
 
 # Check if LDOP containers are paused; if so, unpause them. Output steps.
 compose_unpause_all() {
-  echo "...checking which containers are unpaused..."
+  echo " ...checking which containers are unpaused..."
   PAUSED_CONTAINERS=$(${CONF_DIR}/adop compose ps 2>/dev/null | grep Paused | \
   awk -F'[[:space:]]' '{print $1}')
   if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
   then
     COUNT=$(wc -w <<< $PAUSED_CONTAINERS | tr -d '[:space:]')
-    echo "#############################################"
-    echo "There are $COUNT containers paused."
-    echo "The following containers are paused..."
-    echo $PAUSED_CONTAINERS
-    echo "#############################################"
+    echo '##########################################################'
+    echo " There are $COUNT containers paused."
+    echo " The following containers are paused..."
+    echo ' '$PAUSED_CONTAINERS
+    echo '##########################################################'
     for i in $PAUSED_CONTAINERS
     do
-      echo "...unpausing $i..."
+      echo " ...unpausing $i..."
       ${CONF_DIR}/adop compose unpause $i
     done
-    echo "#############################################"
-    echo "All containers are now unpaused."
-    echo "#############################################"
+    echo '##########################################################'
+    echo " All containers are now unpaused."
+    echo '##########################################################'
   else
-    echo "There are no containers paused."
+    echo " There are no containers paused."
   fi
 }
 
 # Determine if LDOP is actively running or paused. Output steps.
 set_active() {
-  echo "...checking if LDOP is currently active..."
+  echo " ...checking if LDOP is currently active..."
   PS=$(${CONF_DIR}/adop compose ps 2>/dev/null)
 
   # Get all the output after the last occurance of *-\s
@@ -85,29 +85,32 @@ pause_and_stop() {
     set_active
     if [ "$ACTIVE" = true ]
     then
-      echo "WARNING!"
-      read -p "Proceed to unpause/shut down LDOP containers? (Y/N)   " -n 1 -r
+      echo '##########################################################'
+      echo ' Warning!'
+      read -p " Proceed to unpause & shut down LDOP containers? (Y/N) " -n 1 -r
       echo
+      echo '##########################################################'
       if [[ $REPLY =~ ^[Yy]$ ]]
       then
-        echo "...proceeding..."
         compose_unpause_all
-        echo "...stopping LDOP..."
+        echo ' ...stopping LDOP... '
         ${CONF_DIR}/adop compose down
       else
-        echo "Exiting."
+        echo ' ...exiting. '
         exit 0
       fi
     fi
   else
-    echo "...forcing unpause and shut down of LDOP..."
+    echo ' -f flag specified, skipping confirmation of shut down... '
     compose_unpause_all
     ${CONF_DIR}/adop compose down
   fi
+  echo '##########################################################'
 }
 
 # Store values returned from docker ps that are not running/up.
 examine_statuses() {
+  # This should be limited to LDOP...
   # Assign array indices for each non-running status
   STATS[1]=$(docker ps -f "status=created" --format "{{.Names}}: {{.Status}}")
   STATS[2]=$(docker ps -f "status=restarting" --format \
@@ -120,7 +123,7 @@ examine_statuses() {
 
 # Print the values stored in examine_statuses() if they exist.
 print_statuses() {
-  echo "Docker Containers with Non-running Statuses:"
+  echo " Docker Containers with Non-running Statuses:"
   # Iterate over the 6 array elements
   for i in `seq 1 6`
   do
@@ -132,13 +135,60 @@ print_statuses() {
     if [ "${#item}" -gt "0" ]
     then
       # Print the non-running statuses...
-      echo ${STATS[$i]}
+      echo ' '${STATS[$i]}
     fi
   done
 }
 
+test_parameterized_job () {
+  echo ' Testing Job '$1
+  echo '##########################################################'
+  # Sources to obtain the password for Jenkins
+  source ${CONF_DIR}/conf/env.provider.sh
+  source ${CONF_DIR}/credentials.generate.sh
+  source ${CONF_DIR}/env.config.sh 
+  # The URL of the job $1 as hit from within the Jenkins container
+  JOB_URL=localhost:8080/jenkins/job/$1
+  # A value to determine if the job is currently executing
+  GREP_RETURN_CODE=0
+  # Trigger the parameterized job with default parameters.
+  # -s silent, don't output curl details
+  # docker exec jenkins, execute from within jenkins container
+  # --data '', execute the curl as a POST
+  # /buildWithParameters, build with default parameters
+  docker exec jenkins curl -s --data '' \
+    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
+  echo " ...triggered the job '$1' to build with default parameters..."
+  # Disable -e as set in ADOP...
+  set +e
+  # ...while the successful curl of the lastBuild information
+  # holds a null value as the result...
+  # "while the job is still executing"
+  while [ $GREP_RETURN_CODE -eq 0 ]
+  do
+    # Give the job time to build, check every 30 seconds
+    echo " ...waiting 30 seconds for '$1' job to build... "
+    sleep 30
+    CURL=$(docker exec jenkins curl -s \
+      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json)
+    # If the curl command did not error...
+    # (only update the "job currently executing" variable if the curl succeeds)
+    if [ $? -eq 0 ]
+    then
+      # Grep will return 0 (successfully obtained null result) 
+      # while the build is running
+      echo $CURL | grep building\":true > /dev/null
+      GREP_RETURN_CODE=$?
+    fi
+    # If the curl command errored, sleep and try again
+  done
+  RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
+  echo " ...'$1' job completed! Build Status: $RESULT"
+  set -e
+}
+
 basic() {
-  # Parameters
+  # Initialize flag representation variables
   W=0
   F=0
   while getopts "wfh" opt; do
@@ -161,104 +211,46 @@ basic() {
     esac
   done
 
+  echo '##########################################################'
+  echo ' Basic Test Started '
+  echo '##########################################################'
+  
+  # If LDOP is currently active, stop it.
   pause_and_stop $F
 
-  echo
-  echo "#######################"
-  echo "# Testing in Progress #"
-  echo "#######################"
-  echo
-
-  echo "...starting LDOP with temporary volumes..."
+  echo " ...starting LDOP with temporary volumes..."
   if [ $W -eq 0 ]
   then  
-    echo "/ldop compose init --without-load --without-pull"
+    echo " Running /ldop compose init --without-load --without-pull"
     ${CONF_DIR}/adop compose -v test_local init --without-load --without-pull
   else
     echo "...-w flag specified; omitting without-pull..."
-    echo "/ldop compose init --without-load"
+    echo " Running /ldop compose init --without-load"
     ${CONF_DIR}/adop compose -v test_local init --without-load
   fi
-  
-  # Sources to obtain the password for Jenkins
-  source ${CONF_DIR}/conf/env.provider.sh
-  source ${CONF_DIR}/credentials.generate.sh
-  source ${CONF_DIR}/env.config.sh 
+  echo '##########################################################'
 
-  ############### Test if Load_Platform job works properly ###############
-  echo "Testing if Load_Platform job is successful..."
+  # Run Load_Platform and store the result in $RESULT globally
+  test_parameterized_job "Load_Platform"
 
-  # The URL of the job Load_Platform as hit from within the Jenkins container
-  JOB_URL=localhost:8080/jenkins/job/Load_Platform
-
-  # A value to determine if the job is currently executing
-  GREP_RETURN_CODE=0
-
-  # Trigger the parameterized job with default parameters.
-  # -s silent, don't output curl details
-  # docker exec jenkins, execute from within jenkins container
-  # --data '', execute the curl as a POST
-  # /buildWithParameters, build with default parameters
-  docker exec jenkins curl -s --data '' \
-    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
-  echo "...triggered the job Load_Platform to build with default parameters..."
-
-  # Disable -e as set in ADOP...
-  set +e
-
-  # ...while the successful curl of the lastBuild information
-  # holds a null value as the result...
-  # "while the job is still executing"
-  while [ $GREP_RETURN_CODE -eq 0 ]
-  do
-    # Give the job time to build, check every 30 seconds
-    echo "...waiting 30 seconds for Load_Platform job to execute..."
-    sleep 30
-    CURL=$(docker exec jenkins curl -s \
-      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json)
-    # If the curl command did not error...
-    # (only update the "job currently executing" variable if the curl succeeds)
-    if [ $? -eq 0 ]
-    then
-      # Grep will return 0 (successfully obtained null result) 
-      # while the build is running
-      echo $CURL | grep building\":true > /dev/null
-      GREP_RETURN_CODE=$?
-    fi
-    # If the curl command errored, sleep and try again
-  done
-  RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
-  echo "...Load_Platform job completed! Build Status: $RESULT"
-
-  set -e
-  
-  ############### Tested if Load_Platform job works properly ###############
-
-  echo
-  echo "#######################"
-  echo "#  Testing Complete   #"
-  echo "#######################"
-  echo
-
+  echo '##########################################################'
+  echo ' Test Complete'
+  echo '##########################################################'
+ 
+  # Save the state of non-running containers to output after shut down 
   examine_statuses
 
-  echo "...stopping the test and removing volumes..."
+  echo " ...stopping the test and removing volumes..."
   ${CONF_DIR}/adop compose -v test_local down --volumes
 
-  echo
-  echo "#######################"
-  echo "#  Testing Results:   #"
-  echo "#######################"
-  echo
+  echo '##########################################################'
+  echo ' Test Results'
+  echo '##########################################################'
 
-  echo
-  echo "Load_Platform Build Result: $RESULT"
-  echo
-
+  echo " Load_Platform Build Result: $RESULT"
+  
+  # Print the non-running containers prior to shut down
   print_statuses
-
-  echo "...basic test complete."
-  echo
 }
 
 shift $(($OPTIND -1))
