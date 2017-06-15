@@ -16,7 +16,20 @@ help() {
     echo
     echo "Available subcommands are:"
     printf "    %-20s   %s\n" "basic" "Test basic functionality."
+    printf "    %-20s   %s\n" "job" "Trigger Jenkins jobs and grab results."
     printf "    %-20s   %s\n" "help" "Prints this help information"
+    echo
+}
+
+
+job_help() 
+{
+    echo
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} job [<options>]"
+    echo
+    printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+    printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
 
@@ -282,6 +295,26 @@ basic() {
   print_statuses
 }
 
+job() {
+  while getopts "fh" opt; do
+    case $opt in
+      f)
+        echo "f flag true"
+        ;;
+      h)
+        job_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        job_help
+        exit 1
+        ;;
+    esac
+  done
+  echo "test job!"
+}
+
 shift $(($OPTIND -1))
 SUBCOMMAND_OPT="${1:-help}"
 
@@ -297,6 +330,9 @@ if [ ! -z ${SUBCOMMAND_OPT} ]; then
         ;;
     "basic")
         basic "$@"
+        ;;
+    "job")
+        job "$@"
         ;;
     *)
         echo "Invalid subcommand."
