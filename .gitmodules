@@ -31,3 +31,6 @@
 [submodule "submodules/ldop-logstash"]
 	path = submodules/ldop-logstash
 	url = https://github.com/liatrio/ldop-logstash
+[submodule "submodules/ldop-platform-management"]
+	path = submodules/ldop-platform-management
+	url = https://github.com/liatrio/ldop-platform-management
