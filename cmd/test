@@ -32,6 +32,7 @@ basic_help()
     echo
 }
 
+# Check if LDOP containers are paused; if so, unpause them. Output steps.
 compose_unpause_all() {
   echo "...checking which containers are unpaused..."
   PAUSED_CONTAINERS=$(${CONF_DIR}/adop compose ps 2>/dev/null | grep Paused | \
@@ -57,6 +58,54 @@ compose_unpause_all() {
   fi
 }
 
+# Determine if LDOP is actively running or paused. Output steps.
+set_active() {
+  echo "...checking if LDOP is currently active..."
+  PS=$(${CONF_DIR}/adop compose ps 2>/dev/null)
+
+  # Get all the output after the last occurance of *-\s
+  AFTER_HEADER=${PS##*----}
+
+  # If compose ps returned any values... (A string with more than 0 char)
+  if [ "${#AFTER_HEADER}" -gt "0" ]
+  then
+    ACTIVE=true
+  else
+    ACTIVE=false
+  fi
+}
+
+
+# Takes -f flag as a parameter. Unpauses and stops LDOP if active.
+# If -f, does not prompt for confirmation.
+pause_and_stop() {
+  if [ $1 -eq 0 ]
+  then
+    set_active
+    if [ "$ACTIVE" = true ]
+    then
+      echo "This test will unpause any paused LDOP containers and shut them down."
+      read -p "Proceed to shut down running and paused containers? (Y/N)   " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]
+      then
+        echo "...proceeding..."
+        compose_unpause_all
+        echo "...stopping LDOP..."
+        ${CONF_DIR}/adop compose down
+      else
+        echo "Exiting."
+        exit 0
+      fi
+    fi
+  else
+    echo "...forcing unpause and shut down of LDOP..."
+    compose_unpause_all
+    ${CONF_DIR}/adop compose down
+  fi
+}
+
+
 basic() {
   # Parameters
   W=0
@@ -81,32 +130,7 @@ basic() {
     esac
   done
 
-  echo "...checking if LDOP is currently running..."
-  PS=$(${CONF_DIR}/adop compose ps 2>/dev/null)
-
-  # Get all the output after the last occurance of *-\s
-  AFTER_HEADER=${PS##*----}
-
-  if [ $F -eq 0 ]
-  then
-    # If there are any items in /adop compose ps...
-    if [ "${#AFTER_HEADER}" -gt "0" ] 
-    then
-      echo "This test will unpause any paused LDOP containers and shut them down."
-      read -p "Proceed to shut down running and paused containers? (Y/N)   " -n 1 -r
-      echo
-      if [[ $REPLY =~ ^[Yy]$ ]]
-      then
-        echo "...proceeding..."
-        compose_unpause_all
-        echo "...stopping LDOP..."
-        ${CONF_DIR}/adop compose down
-      else
-        echo "Exiting."
-        exit 0
-      fi
-    fi
-  fi
+  pause_and_stop $F
 
   echo
   echo "#######################"
