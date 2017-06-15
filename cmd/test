@@ -40,22 +40,19 @@ compose_unpause_all() {
   if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
   then
     COUNT=$(wc -w <<< $PAUSED_CONTAINERS | tr -d '[:space:]')
-    echo '##########################################################'
     echo " There are $COUNT containers paused."
     echo " The following containers are paused..."
     echo ' '$PAUSED_CONTAINERS
-    echo '##########################################################'
     for i in $PAUSED_CONTAINERS
     do
       echo " ...unpausing $i..."
       ${CONF_DIR}/adop compose unpause $i
     done
-    echo '##########################################################'
     echo " All containers are now unpaused."
-    echo '##########################################################'
   else
     echo " There are no containers paused."
   fi
+  echo '##########################################################'
 }
 
 # Determine if LDOP is actively running or paused. Output steps.
@@ -73,23 +70,28 @@ set_active() {
   else
     ACTIVE=false
   fi
+  if [ "$ACTIVE" = true ]
+  then
+    echo ' ...LDOP is active...'
+  else
+    echo ' ...LDOP is not active...'
+  fi
+  echo '##########################################################'
 }
 
 
 # Takes -f flag as a parameter. Unpauses and stops LDOP if active.
 # If -f, does not prompt for confirmation.
 pause_and_stop() {
-  if [ $1 -eq 0 ]
+  if [ "$1" = false ]
   then
     # set_active() sets ACTIVE to true if /ldop compose ps returns values
     set_active
     if [ "$ACTIVE" = true ]
     then
-      echo '##########################################################'
       echo ' Warning!'
       read -p " Proceed to unpause & shut down LDOP containers? (Y/N) " -n 1 -r
       echo
-      echo '##########################################################'
       if [[ $REPLY =~ ^[Yy]$ ]]
       then
         compose_unpause_all
@@ -110,6 +112,7 @@ pause_and_stop() {
 
 # Store values returned from docker ps that are not running/up.
 examine_statuses() {
+  echo ' ...storing current non-running statuses...'
   # This should be limited to LDOP...
   # Assign array indices for each non-running status
   STATS[1]=$(docker ps -f "status=created" --format "{{.Names}}: {{.Status}}")
@@ -119,11 +122,12 @@ examine_statuses() {
   STATS[4]=$(docker ps -f "status=paused" --format "{{.Names}}: {{.Status}}")
   STATS[5]=$(docker ps -f "status=exited" --format "{{.Names}}: {{.Status}}")
   STATS[6]=$(docker ps -f "status=dead" --format "{{.Names}}: {{.Status}}")
+  echo '##########################################################'
 }
 
 # Print the values stored in examine_statuses() if they exist.
 print_statuses() {
-  echo " Docker Containers with Non-running Statuses:"
+  echo " LDOP Containers with Non-running Statuses:"
   # Iterate over the 6 array elements
   for i in `seq 1 6`
   do
@@ -138,11 +142,11 @@ print_statuses() {
       echo ' '${STATS[$i]}
     fi
   done
+  echo '##########################################################'
 }
 
 test_parameterized_job () {
   echo ' Testing Job '$1
-  echo '##########################################################'
   # Sources to obtain the password for Jenkins
   source ${CONF_DIR}/conf/env.provider.sh
   source ${CONF_DIR}/credentials.generate.sh
@@ -185,19 +189,56 @@ test_parameterized_job () {
   RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
   echo " ...'$1' job completed! Build Status: $RESULT"
   set -e
+  echo '##########################################################'
+}
+
+start_with_test_volumes() {
+  echo " ...starting LDOP with temporary volumes..."
+  if [ "$1" = false ]
+  then  
+    echo " Running /ldop compose init --without-load --without-pull"
+    ${CONF_DIR}/adop compose -v test_local init --without-load --without-pull
+  else
+    echo "...-w flag specified; omitting without-pull..."
+    echo " Running /ldop compose init --without-load"
+    ${CONF_DIR}/adop compose -v test_local init --without-load
+  fi
+  echo '##########################################################'
+}
+
+stop_and_remove_test_volumes() {
+  echo " ...stopping the test and removing volumes..."
+  ${CONF_DIR}/adop compose -v test_local down --volumes
+  echo '##########################################################'
+}
+
+start_test_text() {
+  echo '##########################################################'
+  echo ' '$1' Test Started '
+  echo '##########################################################'
+}
+
+end_test_text() {
+  echo ' '$1' Test Complete'
+  echo '##########################################################'
+}
+
+results_test_text() {
+  echo ' '$1' Test Results'
+  echo '##########################################################'
 }
 
 basic() {
   # Initialize flag representation variables
-  W=0
-  F=0
+  W_FLAG=false
+  F_FLAG=false
   while getopts "wfh" opt; do
     case $opt in
       w)
-        W=1
+        W_FLAG=true
         ;;
       f)
-        F=1
+        F_FLAG=true
         ;;
       h)
         basic_help
@@ -211,41 +252,29 @@ basic() {
     esac
   done
 
-  echo '##########################################################'
-  echo ' Basic Test Started '
-  echo '##########################################################'
+  # Inform the user that a Basic test has been started
+  start_test_text "Basic"
   
   # If LDOP is currently active, stop it.
-  pause_and_stop $F
+  pause_and_stop $F_FLAG
 
-  echo " ...starting LDOP with temporary volumes..."
-  if [ $W -eq 0 ]
-  then  
-    echo " Running /ldop compose init --without-load --without-pull"
-    ${CONF_DIR}/adop compose -v test_local init --without-load --without-pull
-  else
-    echo "...-w flag specified; omitting without-pull..."
-    echo " Running /ldop compose init --without-load"
-    ${CONF_DIR}/adop compose -v test_local init --without-load
-  fi
-  echo '##########################################################'
+  # Start LDOP with temporary volumes prefixed with test_
+  start_with_test_volumes $W_FLAG
 
   # Run Load_Platform and store the result in $RESULT globally
   test_parameterized_job "Load_Platform"
-
-  echo '##########################################################'
-  echo ' Test Complete'
-  echo '##########################################################'
  
   # Save the state of non-running containers to output after shut down 
   examine_statuses
+  
+  # Inform the user that the Basic test has completed
+  end_test_text "Basic"
 
-  echo " ...stopping the test and removing volumes..."
-  ${CONF_DIR}/adop compose -v test_local down --volumes
+  # Stop LDOP and remove the temporary test_ volumes
+  stop_and_remove_test_volumes
 
-  echo '##########################################################'
-  echo ' Test Results'
-  echo '##########################################################'
+  # Inform the user that results are to follow
+  results_test_text "Basic"
 
   echo " Load_Platform Build Result: $RESULT"
   
