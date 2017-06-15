@@ -15,12 +15,37 @@ help() {
     cmd_usage echo
     echo
     echo "Available subcommands are:"
-    printf "    %-20s   %s\n" "basic" "Test basic functionality."
+    printf "    %-20s   %s\n" "basic" \
+      "Test basic functionality using a test environment."
+    printf "    %-20s   %s\n" "activate" "Start a test environment."
+    printf "    %-20s   %s\n" "deactivate" "Stop a test environment."
     printf "    %-20s   %s\n" "job" "Trigger Jenkins jobs and grab results."
     printf "    %-20s   %s\n" "help" "Prints this help information"
     echo
 }
 
+
+activate_help() 
+{
+    echo
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} activate [<options>]"
+    echo
+    printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+    printf "    %-3s   %s\n" "" "-h : Prints this help information."
+    echo
+}
+
+deactivate_help() 
+{
+    echo
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} deactivate [<options>]"
+    echo
+    printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+    printf "    %-3s   %s\n" "" "-h : Prints this help information."
+    echo
+}
 
 job_help() 
 {
@@ -28,6 +53,8 @@ job_help()
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} job [<options>]"
     echo
     printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" \
+      "-p : Run a parameterized job with default parameters."
     printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
@@ -243,15 +270,15 @@ results_test_text() {
 
 basic() {
   # Initialize flag representation variables
-  W_FLAG=false
-  F_FLAG=false
+  BASIC_W_FLAG=false
+  BASIC_F_FLAG=false
   while getopts "wfh" opt; do
     case $opt in
       w)
-        W_FLAG=true
+        BASIC_W_FLAG=true
         ;;
       f)
-        F_FLAG=true
+        BASIC_F_FLAG=true
         ;;
       h)
         basic_help
@@ -269,10 +296,10 @@ basic() {
   start_test_text "Basic"
   
   # If LDOP is currently active, stop it.
-  pause_and_stop $F_FLAG
+  pause_and_stop $BASIC_F_FLAG
 
   # Start LDOP with temporary volumes prefixed with test_
-  start_with_test_volumes $W_FLAG
+  start_with_test_volumes $BASIC_W_FLAG
 
   # Run Load_Platform and store the result in $RESULT globally
   test_parameterized_job "Load_Platform"
@@ -296,10 +323,13 @@ basic() {
 }
 
 job() {
-  while getopts "fh" opt; do
+  while getopts "fph" opt; do
     case $opt in
       f)
         echo "f flag true"
+        ;;
+      p)
+        echo "p flag true"
         ;;
       h)
         job_help
@@ -313,6 +343,46 @@ job() {
     esac
   done
   echo "test job!"
+}
+
+activate() {
+  while getopts "fh" opt; do
+    case $opt in
+      f)
+        echo "f flag true"
+        ;;
+      h)
+        activate_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        activate_help
+        exit 1
+        ;;
+    esac
+  done
+  echo "test activate!"
+}
+
+deactivate() {
+  while getopts "fh" opt; do
+    case $opt in
+      f)
+        echo "f flag true"
+        ;;
+      h)
+        deactivate_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        deactivate_help
+        exit 1
+        ;;
+    esac
+  done
+  echo "test deactivate!"
 }
 
 shift $(($OPTIND -1))
@@ -333,6 +403,12 @@ if [ ! -z ${SUBCOMMAND_OPT} ]; then
         ;;
     "job")
         job "$@"
+        ;;
+    "activate")
+        activate "$@"
+        ;;
+    "deactivate")
+        deactivate "$@"
         ;;
     *)
         echo "Invalid subcommand."
