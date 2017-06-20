@@ -54,8 +54,9 @@ job_help()
     echo
     printf "    %-2s   %s\n" "" "Options:"
     printf "    %-3s   %s\n" "" \
-      "-p : Run a parameterized job with default parameters."
-    printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+      "-p <job-name>: Run a parameterized job with default parameters."
+    printf "    %-3s   %s\n" "" \
+      "-b <job-name>: Run a basic job."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
@@ -185,6 +186,53 @@ print_statuses() {
   echo '##########################################################'
 }
 
+test_basic_job () {
+  echo ' Testing Job '$1
+  # Sources to obtain the password for Jenkins
+  source ${CONF_DIR}/conf/env.provider.sh
+  source ${CONF_DIR}/credentials.generate.sh
+  source ${CONF_DIR}/env.config.sh 
+  # The URL of the job $1 as hit from within the Jenkins container
+  JOB_URL=localhost:8080/jenkins/job/$1
+  # A value to determine if the job is currently executing
+  GREP_RETURN_CODE=0
+  # Trigger the job
+  # -s silent, don't output curl details
+  # docker exec jenkins, execute from within jenkins container
+  # --data '', execute the curl as a POST
+  # /buildWithParameters, build with default parameters
+  docker exec jenkins curl -s --data '' \
+    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/build
+  echo " ...triggered the job '$1' to build..."
+  # Disable -e as set in ADOP...
+  set +e
+  # ...while the successful curl of the lastBuild information
+  # holds a null value as the result...
+  # "while the job is still executing"
+  while [ $GREP_RETURN_CODE -eq 0 ]
+  do
+    # Give the job time to build, check every 30 seconds
+    echo " ...waiting 30 seconds for '$1' job to build... "
+    sleep 30
+    CURL=$(docker exec jenkins curl -s \
+      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json)
+    # If the curl command did not error...
+    # (only update the "job currently executing" variable if the curl succeeds)
+    if [ $? -eq 0 ]
+    then
+      # Grep will return 0 (successfully obtained null result) 
+      # while the build is running
+      echo $CURL | grep building\":true > /dev/null
+      GREP_RETURN_CODE=$?
+    fi
+    # If the curl command errored, sleep and try again
+  done
+  RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
+  echo " ...'$1' job completed! Build Status: $RESULT"
+  set -e
+  echo '##########################################################'
+}
+
 test_parameterized_job () {
   echo ' Testing Job '$1
   # Sources to obtain the password for Jenkins
@@ -270,15 +318,19 @@ results_test_text() {
 
 job() {
   # Initialize flag representation variables
-  JOB_F_FLAG=false
   JOB_P_FLAG=false
-  while getopts "fph" opt; do
+  JOB_B_FLAG=false
+  JOB_BASIC="unset"
+  JOB_PARAM="unset"
+  while getopts "b:p:h" opt; do
     case $opt in
-      f)
-        JOB_F_FLAG=true
+      b)
+        JOB_B_FLAG=true
+        JOB_BASIC=${OPTARG}
         ;;
       p)
         JOB_P_FLAG=true
+        JOB_PARAM=${OPTARG}
         ;;
       h)
         job_help
@@ -291,7 +343,31 @@ job() {
         ;;
     esac
   done
-  echo "test job!"
+
+  if [ "$JOB_P_FLAG" = true ]
+  then
+    test_parameterized_job $JOB_PARAM
+    # Inform the user that results are to follow
+    results_test_text "Parameterized Job"
+    echo " $JOB_PARAM Build Result: $RESULT"
+  fi
+
+  if [ "$JOB_B_FLAG" = true ]
+  then
+    test_basic_job $JOB_BASIC
+    # Inform the user that results are to follow
+    results_test_text "Basic Job"
+    echo " $JOB_BASIC Build Result: $RESULT"
+  fi
+
+  if [ "$JOB_B_FLAG" = false ]
+  then
+    if [ "$JOB_P_FLAG" = false ]
+    then
+      echo "Error: No job specified. Use \"/adop test job -h\" for help."
+      exit 1
+    fi
+  fi
 }
 
 activate() {
@@ -317,6 +393,9 @@ activate() {
         ;;
     esac
   done
+  
+  pause_and_stop $ACTIVATE_F_FLAG
+ 
   if [ "$ACTIVATE_F_FLAG" = false ]
   then
     echo ' Warning!'
