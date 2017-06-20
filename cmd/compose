@@ -194,6 +194,15 @@ done
     echo "* Waiting for Nginx to become available"
     until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
     
+    # Integrate extensions with Nginx
+    for ext in ${EXTENSIONS}; do
+      ext_nginx_conf="${CLI_DIR}/extensions/$ext/sites-enabled"
+      if [ -d "${ext_nginx_conf}" ]; then
+        echo "copying $ext nginx config"
+        # docker cp ${ext_nginx_conf}/. ${PROJECT_NAME}_nginx_conf:/etc/nginx/
+      fi
+    done
+
     # Tell the user something useful
     echo
     echo '##########################################################'
