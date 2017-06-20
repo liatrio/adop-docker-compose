@@ -17,6 +17,7 @@ cmd_usage() {
     printf "    %-12s   %s\n" "-n <name>" "The custom network to create (if not present) and use"
     printf "    %-12s   %s\n" "-i <ip>" "The public IP that the proxy will be accessed from (only required when not using Docker Machine)"
     printf "    %-12s   %s\n" "-p <name>" "The name of the docker compose project (default: ldopdockercompose)."
+    printf "    %-12s   %s\n" "-e <name>" "Name of an extension to load (can use multiple -e switches)."
 }
 
 help() {
@@ -97,6 +98,19 @@ prep_env() {
     else
         export ADOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml -f ${CLI_DIR}/etc/logging/${LOGGING_DRIVER}/default.yml"
     fi
+
+    # Add extensions to compose file list
+    for ext in $EXTENSIONS; do
+      ext_path="${CLI_DIR}/extensions/$ext/docker-compose.yml"
+      if ! [ -f "${ext_path}" ]; then
+        echo "Extension not found: $ext. Exiting."
+        exit 1 
+      else
+        export ADOPFILEOPTS="${ADOPFILEOPTS} -f ${ext_path}"
+      fi
+    done
+
+    echo $ADOPFILEOPTS
 }
 
 
@@ -319,9 +333,10 @@ export TOTAL_OVERRIDES=""
 export PULL="YES"
 export MACHINE_NAME=""
 export PROJECT_NAME="ldopdockercompose"
+export EXTENSIONS=""
 
 # Parameters
-while getopts "m:f:F:v:l:n:i:p:" opt; do
+while getopts "m:f:F:v:l:n:i:p:e:" opt; do
   case $opt in
     m)
       export MACHINE_NAME=${OPTARG}
@@ -346,6 +361,9 @@ while getopts "m:f:F:v:l:n:i:p:" opt; do
       ;;
     p)
       export PROJECT_NAME="${OPTARG}"
+      ;;
+    e)
+      export EXTENSIONS="${EXTENSIONS} ${OPTARG}"
       ;;
     *)
       echo "Invalid parameter(s) or option(s)."
