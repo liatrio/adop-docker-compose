@@ -268,6 +268,114 @@ results_test_text() {
   echo '##########################################################'
 }
 
+job() {
+  # Initialize flag representation variables
+  JOB_F_FLAG=false
+  JOB_P_FLAG=false
+  while getopts "fph" opt; do
+    case $opt in
+      f)
+        JOB_F_FLAG=true
+        ;;
+      p)
+        JOB_P_FLAG=true
+        ;;
+      h)
+        job_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        job_help
+        exit 1
+        ;;
+    esac
+  done
+  echo "test job!"
+}
+
+activate() {
+  # Initialize flag representation variables
+  ACTIVATE_F_FLAG=false
+  ACTIVATE_W_FLAG=false
+  while getopts "wfh" opt; do
+    case $opt in
+      w)
+        ACTIVATE_W_FLAG=true
+        ;;
+      f)
+        ACTIVATE_F_FLAG=true
+        ;;
+      h)
+        activate_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        activate_help
+        exit 1
+        ;;
+    esac
+  done
+  if [ "$ACTIVATE_F_FLAG" = false ]
+  then
+    echo ' Warning!'
+    read -p " Proceed to start test environment? (Y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+      start_with_test_volumes $ACTIVATE_W_FLAG
+    else
+      echo ' ...exiting. '
+      exit 0
+    fi
+  else
+    # -f flag specified, do not prompt for confirmation
+    start_with_test_volumes $ACTIVATE_W_FLAG
+  fi
+}
+
+deactivate() {
+  DEACTIVATE_F_FLAG=false
+  while getopts "fh" opt; do
+    case $opt in
+      f)
+        DEACTIVATE_F_FLAG=true
+        ;;
+      h)
+        deactivate_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        deactivate_help
+        exit 1
+        ;;
+    esac
+  done
+  if [ "$DEACTIVATE_F_FLAG" = false ]
+  then
+    echo ' Warning!'
+    read -p " Proceed to shut down test environment? (Y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+      stop_and_remove_test_volumes
+    else
+      echo ' ...exiting. '
+      exit 0
+    fi
+  else
+    # -f flag specified, do not prompt for confirmation
+    stop_and_remove_test_volumes
+  fi
+}
+
+# Stop running LDOP if activate
+# Start test environment
+# Test Load_Platform job
+# Check statuses of containers
+# Exit test environment
 basic() {
   # Initialize flag representation variables
   BASIC_W_FLAG=false
@@ -322,68 +430,6 @@ basic() {
   print_statuses
 }
 
-job() {
-  while getopts "fph" opt; do
-    case $opt in
-      f)
-        echo "f flag true"
-        ;;
-      p)
-        echo "p flag true"
-        ;;
-      h)
-        job_help
-        exit 0
-        ;;
-      *)
-        echo "Invalid parameter(s) or option(s)."
-        job_help
-        exit 1
-        ;;
-    esac
-  done
-  echo "test job!"
-}
-
-activate() {
-  while getopts "fh" opt; do
-    case $opt in
-      f)
-        echo "f flag true"
-        ;;
-      h)
-        activate_help
-        exit 0
-        ;;
-      *)
-        echo "Invalid parameter(s) or option(s)."
-        activate_help
-        exit 1
-        ;;
-    esac
-  done
-  echo "test activate!"
-}
-
-deactivate() {
-  while getopts "fh" opt; do
-    case $opt in
-      f)
-        echo "f flag true"
-        ;;
-      h)
-        deactivate_help
-        exit 0
-        ;;
-      *)
-        echo "Invalid parameter(s) or option(s)."
-        deactivate_help
-        exit 1
-        ;;
-    esac
-  done
-  echo "test deactivate!"
-}
 
 shift $(($OPTIND -1))
 SUBCOMMAND_OPT="${1:-help}"
