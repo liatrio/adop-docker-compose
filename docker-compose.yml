@@ -75,7 +75,7 @@ services:
     expose:
       - "389"
     ports:
-      - "389/tcp:389/tcp"
+      - "389:389/tcp"
     environment:
       INITIAL_ADMIN_USER: ${INITIAL_ADMIN_USER}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
@@ -288,7 +288,7 @@ services:
       - "logstash"
       - "kibana"
     ports:
-      - "50000/tcp:50000/tcp"
+      - "50000:50000/tcp"
     expose:
       - "8080"
       - "50000"
