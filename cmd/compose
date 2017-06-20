@@ -16,6 +16,7 @@ cmd_usage() {
     printf "    %-12s   %s\n" "-v <driver>" "The volume driver to use"
     printf "    %-12s   %s\n" "-n <name>" "The custom network to create (if not present) and use"
     printf "    %-12s   %s\n" "-i <ip>" "The public IP that the proxy will be accessed from (only required when not using Docker Machine)"
+    printf "    %-12s   %s\n" "-p <name>" "The name of the docker compose project (default: ldopdockercompose)."
 }
 
 help() {
@@ -298,11 +299,11 @@ run_compose() {
     # If total overrides have been provided then just use them
     # Else use "our" file list
     if [ ! -z "${TOTAL_OVERRIDES}"   ]; then
-        docker-compose ${TOTAL_OVERRIDES} ${compose_cmd} "$@"
+        docker-compose -p ${PROJECT_NAME} ${TOTAL_OVERRIDES} ${compose_cmd} "$@"
     else
         # docker-compose ${ELKFILEOPTS} ${compose_cmd} "$@"
         # echo
-        docker-compose ${ADOPFILEOPTS} ${OVERRIDES} ${compose_cmd} "$@"
+        docker-compose -p ${PROJECT_NAME} ${ADOPFILEOPTS} ${OVERRIDES} ${compose_cmd} "$@"
     fi
 }
 
@@ -317,9 +318,10 @@ export OVERRIDES=""
 export TOTAL_OVERRIDES=""
 export PULL="YES"
 export MACHINE_NAME=""
+export PROJECT_NAME="ldopdockercompose"
 
 # Parameters
-while getopts "m:f:F:v:l:n:i:" opt; do
+while getopts "m:f:F:v:l:n:i:p:" opt; do
   case $opt in
     m)
       export MACHINE_NAME=${OPTARG}
@@ -341,6 +343,9 @@ while getopts "m:f:F:v:l:n:i:" opt; do
       ;;
     i)
       export PROXY_IP="${OPTARG}"
+      ;;
+    p)
+      export PROJECT_NAME="${OPTARG}"
       ;;
     *)
       echo "Invalid parameter(s) or option(s)."
