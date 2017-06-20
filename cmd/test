@@ -57,6 +57,8 @@ job_help()
       "-p <job-name>: Run a parameterized job with default parameters."
     printf "    %-3s   %s\n" "" \
       "-b <job-name>: Run a basic job."
+    printf "    %-3s   %s\n" "" \
+      "-s : Exit on error if job result is not \"SUCCESS\"."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
@@ -69,6 +71,8 @@ basic_help()
     printf "    %-2s   %s\n" "" "Options:"
     printf "    %-3s   %s\n" "" "-w : Execute init --with-pull."
     printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+    printf "    %-3s   %s\n" "" \
+      "-e : Exit on error if Load_Platform is unsuccessful."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
@@ -320,9 +324,10 @@ job() {
   # Initialize flag representation variables
   JOB_P_FLAG=false
   JOB_B_FLAG=false
+  JOB_S_FLAG=false
   JOB_BASIC="unset"
   JOB_PARAM="unset"
-  while getopts "b:p:h" opt; do
+  while getopts "b:p:sh" opt; do
     case $opt in
       b)
         JOB_B_FLAG=true
@@ -331,6 +336,9 @@ job() {
       p)
         JOB_P_FLAG=true
         JOB_PARAM=${OPTARG}
+        ;;
+      s)
+        JOB_S_FLAG=true
         ;;
       h)
         job_help
@@ -350,6 +358,14 @@ job() {
     # Inform the user that results are to follow
     results_test_text "Parameterized Job"
     echo " $JOB_PARAM Build Result: $RESULT"
+    if [ "$JOB_S_FLAG" = true ]
+    then
+      if [ "$RESULT" != "SUCCESS" ]
+      then
+        echo "Error: Build not successful."
+        exit 1
+      fi
+    fi
   fi
 
   if [ "$JOB_B_FLAG" = true ]
@@ -358,6 +374,14 @@ job() {
     # Inform the user that results are to follow
     results_test_text "Basic Job"
     echo " $JOB_BASIC Build Result: $RESULT"
+    if [ "$JOB_S_FLAG" = true ]
+    then
+      if [ "$RESULT" != "SUCCESS" ]
+      then
+        echo "Error: Build not successful."
+        exit 1
+      fi
+    fi
   fi
 
   if [ "$JOB_B_FLAG" = false ]
@@ -459,13 +483,17 @@ basic() {
   # Initialize flag representation variables
   BASIC_W_FLAG=false
   BASIC_F_FLAG=false
-  while getopts "wfh" opt; do
+  BASIC_E_FLAG=false
+  while getopts "wfeh" opt; do
     case $opt in
       w)
         BASIC_W_FLAG=true
         ;;
       f)
         BASIC_F_FLAG=true
+        ;;
+      e)
+        BASIC_E_FLAG=true
         ;;
       h)
         basic_help
@@ -507,6 +535,15 @@ basic() {
   
   # Print the non-running containers prior to shut down
   print_statuses
+
+  if [ "$BASIC_E_FLAG" = true ]
+  then
+    if [ "$RESULT" != "SUCCESS" ]
+    then
+      echo "Error: Load_Platform not successful."
+      exit 1
+    fi
+  fi
 }
 
 
