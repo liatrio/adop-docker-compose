@@ -183,6 +183,15 @@ done
         docker exec jenkins curl -s -X POST jenkins:${PASSWORD_JENKINS}@localhost:8080/jenkins/job/Load_Platform/buildWithParameters --data token=gAsuE35s
     fi
 
+    # Integrate extensions with Nginx
+    for ext in ${EXTENSIONS}; do
+      service_extension_conf="${CLI_DIR}/extensions/$ext/sites-enabled/service-extension"
+      if [ -d "${service_extension_conf}" ]; then
+        docker cp ${service_extension_conf}/. proxy:/etc/nginx/sites-enabled/service-extension
+      fi
+    done
+    run_compose restart proxy
+
     # Generate and copy the certificates to jenkins slave if TLS is enabled
     if [ "${DOCKER_TLS_VERIFY}" = "1" ]; then
         gen_certs "${DOCKER_CLIENT_CERT_PATH}"
@@ -194,15 +203,6 @@ done
     echo "* Waiting for Nginx to become available"
     until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
     
-    # Integrate extensions with Nginx
-    for ext in ${EXTENSIONS}; do
-      ext_nginx_conf="${CLI_DIR}/extensions/$ext/sites-enabled"
-      if [ -d "${ext_nginx_conf}" ]; then
-        echo "copying $ext nginx config"
-        # docker cp ${ext_nginx_conf}/. ${PROJECT_NAME}_nginx_conf:/etc/nginx/
-      fi
-    done
-
     # Tell the user something useful
     echo
     echo '##########################################################'
