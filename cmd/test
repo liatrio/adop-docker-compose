@@ -102,6 +102,7 @@ compose_unpause_all() {
 
 # Determine if LDOP is actively running or paused. Output steps.
 set_active() {
+  set +e
   echo " ...checking if LDOP is currently active..."
   PS=$(${CONF_DIR}/adop compose ps 2>/dev/null)
 
@@ -122,6 +123,7 @@ set_active() {
     echo ' ...LDOP is not active...'
   fi
   echo '##########################################################'
+  set -e
 }
 
 
