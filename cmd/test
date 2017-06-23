@@ -523,6 +523,10 @@ basic() {
  
   # Save the state of non-running containers to output after shut down 
   examine_statuses
+
+  MEM=$(docker stats --no-stream --format "{{.MemPerc}}" | tr -d '\%' | \
+    awk '{sum+=$1} END {print sum}')
+
   
   # Inform the user that the Basic test has completed
   end_test_text "Basic"
@@ -534,6 +538,7 @@ basic() {
   results_test_text "Basic"
 
   echo " Load_Platform Build Result: $RESULT"
+  echo " Docker Memory Usage: $MEM%"
   
   # Print the non-running containers prior to shut down
   print_statuses
