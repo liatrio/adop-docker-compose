@@ -5,10 +5,10 @@ version: '3'
 
 networks:
   default:
-    external: 
+    external:
       name: ${CUSTOM_NETWORK_NAME}
 
-services: 
+services:
   elasticsearch:
     container_name: elasticsearch
     restart: always
@@ -44,7 +44,7 @@ services:
   proxy:
     container_name: proxy
     restart: always
-    image: liatrio/ldop-nginx:0.3.0
+    image: liatrio/ldop-nginx:june-demo
     build: submodules/ldop-nginx
     depends_on:
       - "elasticsearch"
