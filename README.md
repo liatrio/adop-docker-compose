@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/Accenture/adop-docker-compose.svg?branch=master)](https://travis-ci.org/Accenture/adop-docker-compose)
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/Accenture/ADOP)
 
 # The DevOps Platform: Overview
 
@@ -17,7 +15,7 @@ The Liatrio DevOps Platform (LDOP) is Liatrio's adaptation of this platform for 
 
 Here is the front page:
 
-![HomePage](https://raw.githubusercontent.com/accenture/adop-docker-compose/master/img/home.png)
+![HomePage](img/home.png)
 
 Once you have a stack up and running, you can log in with the username and password created upon start-up.
 
@@ -43,12 +41,12 @@ NB. the instructions will also work in anywhere supported by [Docker Machine](ht
         ```bash
         $ ./quickstart.sh
         Usage: ./quickstart.sh -t aws
-                               -m <MACHINE_NAME>  
-                               -c <AWS_VPC_ID> 
-                               -r <AWS_DEFAULT_REGION> 
+                               -m <MACHINE_NAME>
+                               -c <AWS_VPC_ID>
+                               -r <AWS_DEFAULT_REGION>
                                -z <VPC_AVAIL_ZONE>(optional)
-                               -a <AWS_ACCESS_KEY>(optional) 
-                               -s <AWS_SECRET_ACCESS_EY>(optional) 
+                               -a <AWS_ACCESS_KEY>(optional)
+                               -s <AWS_SECRET_ACCESS_EY>(optional)
                                -u <INITIAL_ADMIN_USER>
                                -p <INITIAL_ADMIN_PASSWORD>(optional) ...
         ```
@@ -57,7 +55,7 @@ NB. the instructions will also work in anywhere supported by [Docker Machine](ht
             - a machine name (anything you want)
             - the target VPC
             - If you don't have your AWS credentials and default region [stored locally in ~/.aws](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-config-files) you will also need to supply:
-                - your AWS key and your secret access key (see [getting your AWS access key](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSGettingStartedGuide/AWSCredentials.html)) via command line options, environment variables or using aws configure 
+                - your AWS key and your secret access key (see [getting your AWS access key](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSGettingStartedGuide/AWSCredentials.html)) via command line options, environment variables or using aws configure
                 - the AWS region id in this format: eu-west-1
             - a username and password (optional) to act as credentials for the initial admin user (you will be prompted to re-enter your password if it is considered weak)
                 - The initial admin username cannot be set to 'admin' to avoid duplicate entries in LDAP.
@@ -78,7 +76,7 @@ NB. the instructions will also work in anywhere supported by [Docker Machine](ht
       source ./conf/env.provider.sh
       source credentials.generate.sh
       source env.config.sh
-      
+
     You can check if any variables are missing with: ./adop compose config  | grep 'WARNING'
 
     Navigate to http://11.22.33.44 in your browser to use your new DevOps Platform!
@@ -95,7 +93,7 @@ NB. the instructions will also work in anywhere supported by [Docker Machine](ht
 
 # General Getting Started Instructions
 
-The platform is designed to run on any container platform. 
+The platform is designed to run on any container platform.
 
 ## Provision Docker Engine(s)
 
@@ -103,7 +101,7 @@ The platform is designed to run on any container platform.
 
 - Create a VPC using the VPC wizard in the AWS console by selecting the first option with 1 public subnet
 
-- Create a Docker Engine in AWS (replace the placeholders and their <> markers): 
+- Create a Docker Engine in AWS (replace the placeholders and their <> markers):
 ```sh
 docker-machine create --driver amazonec2 --amazonec2-access-key <YOUR_ACCESS_KEY> --amazonec2-secret-key <YOUR_SECRET_KEY> --amazonec2-vpc-id <YOUR_VPC_ID> --amazonec2-instance-type m4.xlarge --amazonec2-region <YOUR_AWS_REGION, e.g. eu-west-1> <YOUR_MACHINE_NAME>
 ```
@@ -160,7 +158,7 @@ Create a Docker Swarm that has a publicly accessible Engine with the label "tier
 - CUSTOM\_NETWORK\_NAME: The name of the pre-created custom network to use
 - [OPTIONAL] NFS\_HOST: The DNS/IP of your NFS server
 
-# Using the platform 
+# Using the platform
 
 ###### Generate ssl certificate
 
@@ -216,4 +214,3 @@ Before you start to code, we recommend discussing your plans through a [GitHub i
 
 ## Roadmap
 We use this working [Roadmap](https://github.com/Accenture/adop-docker-compose/wiki/Roadmap) to evolve and summarise plans for future features and the merge of existing PRs.
-
