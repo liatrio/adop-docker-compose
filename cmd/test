@@ -221,7 +221,7 @@ test_basic_job () {
     echo " ...waiting 30 seconds for '$1' job to build... "
     sleep 30
     CURL=$(docker exec jenkins curl -s \
-      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json)
+      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json?tree=building)
     # If the curl command did not error...
     # (only update the "job currently executing" variable if the curl succeeds)
     if [ $? -eq 0 ]
@@ -233,6 +233,8 @@ test_basic_job () {
     fi
     # If the curl command errored, sleep and try again
   done
+  CURL=$(docker exec jenkins curl -s \
+    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json?tree=result)
   RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
   echo " ...'$1' job completed! Build Status: $RESULT"
   set -e
