@@ -23,6 +23,7 @@ volumes:
   jenkins_home:
   nexus_sonatype_work:
   registry_certs:
+    external: true
   registry_data:
 
 services:
