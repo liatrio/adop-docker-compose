@@ -132,7 +132,7 @@ done
        ######### ########   #######  ##
     '
 
-    echo "* Initialising ADOP"
+    echo "* Initialising LDOP"
 
     # Check for need of sudo for certs
     set +e
