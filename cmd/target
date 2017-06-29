@@ -3,7 +3,7 @@
 SUB_CMD_NAME="target"
 
 cmd_desc() {
-    echo "For setting up environment variables to connect with adop stack."
+    echo "For setting up environment variables to connect with LDOP stack."
 }
 
 cmd_usage() {
@@ -14,12 +14,12 @@ help() {
     cmd_usage
     echo
     echo "Available subcommands are:"
-    printf "    %-20s   %s\n" "set [<options>]" "Sets the environment variables to point to adop stack."
-    printf "    %-20s   %s\n" "unset" "Unsets the environment variables pointing to adop stack."
+    printf "    %-20s   %s\n" "set [<options>]" "Sets the environment variables to point to LDOP stack."
+    printf "    %-20s   %s\n" "unset" "Unsets the environment variables pointing to LDOP stack."
     printf "    %-20s   %s\n" "help" "Prints this help information"
     echo
     echo "Try '${CMD_NAME} ${SUB_CMD_NAME} <subcommand> help' for details."
-    echo "HINT: Run '${CMD_NAME} ${SUB_CMD_NAME} set' to set the target adop instance."
+    echo "HINT: Run '${CMD_NAME} ${SUB_CMD_NAME} set' to set the target LDOP instance."
     echo
 }
 
@@ -27,9 +27,9 @@ set_help() {
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} set [<options>]"
     printf "    %-2s   %s\n" "" "Options:"
-    printf "    %-3s   %s\n" "" "-t <endpoint> : The endpoint url to connect to adop stack. (Required) (HINT : http://54.77.198.55)"
-    printf "    %-3s   %s\n" "" "-u <username> : The username required for authentication with adop stack. (Required)"
-    printf "    %-3s   %s\n" "" "-p <password> : The password required for authentication with adop stack. (Required)"
+    printf "    %-3s   %s\n" "" "-t <endpoint> : The endpoint url to connect to LDOP stack. (Required) (HINT : http://54.77.198.55)"
+    printf "    %-3s   %s\n" "" "-u <username> : The username required for authentication with LDOP stack. (Required)"
+    printf "    %-3s   %s\n" "" "-p <password> : The password required for authentication with LDOP stack. (Required)"
     echo
 }
 
@@ -82,7 +82,7 @@ set_target() {
           echo "export ADOP_CLI_ENDPOINT=${ADOP_CLI_ENDPOINT}" > ${CLI_DIR}/.adop/target
           echo "export ADOP_CLI_USER=${ADOP_CLI_USER}" >> ${CLI_DIR}/.adop/target
           echo "export ADOP_CLI_PASSWORD=${ADOP_CLI_PASSWORD}" >> ${CLI_DIR}/.adop/target
-          echo -e "SUCCESS : To set the target for ADOP instance source following file -\n\t${CLI_DIR}/.adop/target"
+          echo -e "SUCCESS : To set the target for LDOP instance source following file -\n\t${CLI_DIR}/.adop/target"
       fi
   fi
 }
