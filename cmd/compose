@@ -185,12 +185,36 @@ done
 
     # Integrate extensions with Nginx
     for ext in ${EXTENSIONS}; do
-      service_extension_conf="${CLI_DIR}/extensions/$ext/sites-enabled/service-extension"
-      if [ -d "${service_extension_conf}" ]; then
-        docker cp ${service_extension_conf}/. proxy:/etc/nginx/sites-enabled/service-extension
+      proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy" # sites-enabled/service-extension"
+      if [ -d "${proxy_integrations_dir}" ]; then
+        echo "* Integrating extension $ext"
+
+        # Add proxy pass integration
+        if [ -d "${proxy_integrations_dir}" ]; then 
+          echo "  * Adding proxy pass integration."
+          docker cp ${proxy_integrations_dir}/. proxy:/etc/nginx/sites-enabled/service-extension
+        fi
+
+        # Add dashboard image resources
+        if [ -d "${proxy_integrations_dir}/release-note/img" ]; then
+          echo "  * Adding dashboard resources."
+          docker cp ${proxy_integrations_dir}/release-note/img/. proxy:/usr/share/nginx/html/img
+        fi
+
+        # Add dashboard ui integrations
+        if [ -f "${proxy_integrations_dir}/release-note/plugins.json" ]; then
+          echo "  * Adding dashboard ui integration."
+          docker run \
+              -v "${PROJECT_NAME}_nginx_releasenote:/release-note" \
+              -v "$(pwd)/extensions/$ext/integrations/proxy/release-note/plugins.json:/new-plugins.json" \
+              endeveit/docker-jq \
+              /bin/sh -c "jq -s '.[0].core[0].components = (.[0].core[0].components+.[1].core[0].components|unique_by(.id))|.[0]' \\
+                          /release-note/plugins.json /new-plugins.json \\
+                          >/release-note/tmp.json && mv /release-note/tmp.json /release-note/plugins.json"
+        fi
       fi
     done
-    run_compose restart proxy
+    docker exec proxy service nginx reload
 
     # Generate and copy the certificates to jenkins slave if TLS is enabled
     if [ "${DOCKER_TLS_VERIFY}" = "1" ]; then
