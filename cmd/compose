@@ -378,10 +378,9 @@ export TOTAL_OVERRIDES=""
 export PULL="YES"
 export MACHINE_NAME=""
 export PROJECT_NAME="ldopdockercompose"
-export EXTENSIONS=""
 
 # Parameters
-while getopts "m:f:F:v:l:n:i:p:e:" opt; do
+while getopts "m:f:F:v:l:n:i:p:" opt; do
   case $opt in
     m)
       export MACHINE_NAME=${OPTARG}
@@ -406,9 +405,6 @@ while getopts "m:f:F:v:l:n:i:p:e:" opt; do
       ;;
     p)
       export PROJECT_NAME="${OPTARG}"
-      ;;
-    e)
-      export EXTENSIONS="${EXTENSIONS} ${OPTARG}"
       ;;
     *)
       echo "Invalid parameter(s) or option(s)."

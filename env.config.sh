@@ -56,6 +56,6 @@ export DOCKER_CLIENT_CERT_PATH="//root/.docker/"
 # SSL Settings
 export PROTO="http"
 
-# Extensions
-export EXTENSIONS=""
+# Extension services (space-delimeted string)
+export EXTENSIONS="artifactory"
 
