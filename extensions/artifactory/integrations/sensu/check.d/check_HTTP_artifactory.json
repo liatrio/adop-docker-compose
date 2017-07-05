@@ -1,0 +1,14 @@
+{
+  "checks": {
+    "check_HTTP_artifactory": {
+      "command": "${PLUGINS_DIR}/basic/check-http.rb -u http://artifactory:8081/artifactory -r --response-code 302",
+      "handlers": [
+        "mailer"
+      ],
+      "subscribers": [
+        "artifactory"
+      ],
+      "interval": 60
+    }
+  }
+}

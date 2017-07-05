@@ -208,7 +208,7 @@ services:
       CLIENT_ADDRESS: 127.0.0.1
       RABBITMQ_HOST: sensu-rabbitmq
       JENKINS_PREFIX: jenkins
-      CLIENT_SUBSCRIPTIONS: "proxy,gerrit,jenkins,sonarqube,sensu,kibana"
+      CLIENT_SUBSCRIPTIONS: "${SENSU_CLIENT_SUBSCRIPTIONS}"
 
   sensu-rabbitmq:
     container_name: sensu-rabbitmq

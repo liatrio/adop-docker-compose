@@ -99,8 +99,9 @@ prep_env() {
         export ADOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml -f ${CLI_DIR}/etc/logging/${LOGGING_DRIVER}/default.yml"
     fi
 
-    # Add extensions to compose file list
+    # Add extension variables
     for ext in $EXTENSIONS; do
+      # Add compose file opt
       ext_path="${CLI_DIR}/extensions/$ext/docker-compose.yml"
       if ! [ -f "${ext_path}" ]; then
         echo "Extension not found: $ext. Exiting."
@@ -108,9 +109,10 @@ prep_env() {
       else
         export ADOPFILEOPTS="${ADOPFILEOPTS} -f ${ext_path}"
       fi
-    done
 
-    echo $ADOPFILEOPTS
+      # Add extension sensu client subscription
+      export SENSU_CLIENT_SUBSCRIPTIONS="${SENSU_CLIENT_SUBSCRIPTIONS},$ext"
+    done
 }
 
 
@@ -188,38 +190,49 @@ done
 
     # Update nginx with extension configuration
     for ext in ${EXTENSIONS}; do
-      proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
-      if [ -d "${proxy_integrations_dir}" ]; then
-        echo "* Integrating extension $ext"
+      integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
+      if [ -d "${integrations_dir}" ]; then
+        echo "* Integrating extension: $ext"
 
         # Add proxy pass integration
-        if [ -d "${proxy_integrations_dir}" ]; then 
-          echo "  * Adding proxy pass integration."
-          docker cp ${proxy_integrations_dir}/sites-enabled/service-extension/. proxy:/etc/nginx/sites-enabled/service-extension
+        if [ -d "${integrations_dir}/proxy" ]; then 
+          echo "  * Adding proxy integration."
+          docker cp ${integrations_dir}/proxy/sites-enabled/service-extension/. proxy:/etc/nginx/sites-enabled/service-extension
         fi
+
+        # Add Sensu checks
+        if [ -d "${integrations_dir}/sensu/check.d" ]; then
+          echo "  * Adding sensu integration."
+          docker cp ${integrations_dir}/sensu/check.d/. sensu-server:/etc/sensu/check.d/
+        fi
+
       fi
     done
 
+    # Restart nginx, sensu-server
+    run_compose restart proxy sensu-server
+
     # Wait for Nginx to come up before proceeding
-    run_compose restart proxy
     echo "* Waiting for Nginx to become available"
     until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
 
     # Load extension dashboard resources
     for ext in ${EXTENSIONS}; do
+      integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
       proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
-      if [ -d "${proxy_integrations_dir}" ]; then
-        echo "* Integrating extension $ext"
+
+      if [ -d "${integrations_dir}" ]; then
+        echo "* Integrating dashboard resources for extension: $ext"
 
         # Add dashboard image resources
-        if [ -d "${proxy_integrations_dir}/release-note/img" ]; then
-          echo "  * Adding dashboard resources."
-          docker cp ${proxy_integrations_dir}/release-note/img/. proxy:/usr/share/nginx/html/img
+        if [ -d "${integrations_dir}/proxy/release-note/img" ]; then
+          echo "  * Adding dashboard image."
+          docker cp ${integrations_dir}/proxy/release-note/img/. proxy:/usr/share/nginx/html/img
         fi
 
         # Add dashboard ui integrations
-        if [ -f "${proxy_integrations_dir}/release-note/plugins.json" ]; then
-          echo "  * Adding dashboard ui integration."
+        if [ -f "${integrations_dir}/proxy/release-note/plugins.json" ]; then
+          echo "  * Adding dashboard ui configuration."
           docker run \
               --rm \
               -v "${PROJECT_NAME}_nginx_releasenote:/release-note" \
@@ -229,6 +242,7 @@ done
                           /release-note/plugins.json /new-plugins.json \\
                           >/release-note/tmp.json && mv /release-note/tmp.json /release-note/plugins.json"
         fi
+
       fi
     done
 

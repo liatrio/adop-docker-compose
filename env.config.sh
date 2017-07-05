@@ -47,6 +47,9 @@ export CARTRIDGE_SOURCES="https://raw.githubusercontent.com/Accenture/adop-cartr
 # Jenkins Slave
 export SLAVE_EXECUTORS=1
 
+# Sensu
+export SENSU_CLIENT_SUBSCRIPTIONS="proxy,gerrit,jenkins,sonarqube,sensu,kibana"
+
 # Jenkins Certificate Path
 ####
 # "//" to cater for both Windows and Unix path
