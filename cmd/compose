@@ -16,8 +16,6 @@ cmd_usage() {
     printf "    %-12s   %s\n" "-v <driver>" "The volume driver to use"
     printf "    %-12s   %s\n" "-n <name>" "The custom network to create (if not present) and use"
     printf "    %-12s   %s\n" "-i <ip>" "The public IP that the proxy will be accessed from (only required when not using Docker Machine)"
-    printf "    %-12s   %s\n" "-p <name>" "The name of the docker compose project (default: ldopdockercompose)."
-    printf "    %-12s   %s\n" "-e <name>" "Name of an extension to load (can use multiple -e switches)."
 }
 
 help() {
