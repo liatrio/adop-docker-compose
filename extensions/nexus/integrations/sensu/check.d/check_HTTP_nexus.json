@@ -1,0 +1,14 @@
+{
+  "checks": {
+    "check_HTTP_nexus": {
+      "command": "${PLUGINS_DIR}/basic/check-http.rb -u http://nexus:8081/nexus/#welcome",
+      "handlers": [
+        "mailer"
+      ],
+      "subscribers": [
+        "nexus"
+      ],
+      "interval": 60
+    }
+  }
+}
