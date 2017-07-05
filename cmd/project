@@ -4,7 +4,7 @@ SUB_CMD_NAME="project"
 source ${CLI_DIR}/lib/adop_lib.sh
 
 cmd_desc() {
-    echo "For creating a project space within a workspace in ADOP jenkins instance."
+    echo "For creating a project space within a workspace in LDOP jenkins instance."
 }
 
 cmd_usage() {
@@ -23,7 +23,7 @@ help() {
     printf "    %-20s   %s\n" "load_collection [<options>]" "Load the collection of cartridges into the specified workspace/project."
     echo
     echo "Try '${CMD_NAME} ${SUB_CMD_NAME} <subcommand> -h' for details."
-    echo "HINT: Run '${CMD_NAME} ${SUB_CMD_NAME} -p <PROJECT_NAME> -w <WORKSPACE_NAME> create' to create a project in an existing workpsace in adop jenkins instance."
+    echo "HINT: Run '${CMD_NAME} ${SUB_CMD_NAME} -p <PROJECT_NAME> -w <WORKSPACE_NAME> create' to create a project in an existing workpsace in LDOP jenkins instance."
     echo
 }
 
@@ -49,7 +49,7 @@ load_help() {
     printf "    %-3s   %s\n" "" "-r <ENABLE_CODE_REVIEW>  : This is to control whether to enable code review or not for the repositories loaded by cartridge. (Optional) (Default: false)"
     printf "    %-3s   %s\n" "" "-h                   : Print this help."
     echo
-    echo "HINT: Run '${CMD_NAME} ${SUB_CMD_NAME} -p <PROJECT_NAME> -w <WORKSPACE_NAME> load -u ssh://jenkins@gerrit:29418/cartridges/adop-cartridge-java.git' to load java reference catridge in adop jenkins instance under existing workspace/project."
+    echo "HINT: Run '${CMD_NAME} ${SUB_CMD_NAME} -p <PROJECT_NAME> -w <WORKSPACE_NAME> load -u ssh://jenkins@gerrit:29418/cartridges/adop-cartridge-java.git' to load java reference catridge in LDOP jenkins instance under existing workspace/project."
     echo
 }
 

@@ -70,5 +70,3 @@ teardown() {
   run bash -c "echo $results | grep \"^0\+$\""
   [ "$status" -eq 0 ]
 }
-
-

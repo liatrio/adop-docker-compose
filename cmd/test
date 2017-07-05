@@ -20,7 +20,7 @@ help() {
     echo
 }
 
-basic_help() 
+basic_help()
 {
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
@@ -57,15 +57,15 @@ basic() {
   done
 
   echo "...checking if LDOP is currently running..."
-  PS=$(${CONF_DIR}/adop compose ps 2>/dev/null)
+  PS=$(${CONF_DIR}/ldop compose ps 2>/dev/null)
 
   # Get all the output after the last occurance of *-\s
   AFTER_HEADER=${PS##*----}
 
   if [ $F -eq 0 ]
   then
-    # If there are any items in /adop compose ps...
-    if [ "${#AFTER_HEADER}" -gt "0" ] 
+    # If there are any items in /ldop compose ps...
+    if [ "${#AFTER_HEADER}" -gt "0" ]
     then
       echo "This test will unpause any paused LDOP containers and shut them down."
       read -p "Proceed to shut down running and paused containers? (Y/N)   " -n 1 -r
@@ -74,7 +74,7 @@ basic() {
       then
         echo "...proceeding..."
         echo "...checking which containers are unpaused..."
-        PAUSED_CONTAINERS=$(./adop compose ps 2>/dev/null | grep Paused | \
+        PAUSED_CONTAINERS=$(./ldop compose ps 2>/dev/null | grep Paused | \
         awk -F'[[:space:]]' '{print $1}')
         if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
         then
@@ -87,7 +87,7 @@ basic() {
           for i in $PAUSED_CONTAINERS
           do
             echo "...unpausing $i..."
-            ${CONF_DIR}/adop compose unpause $i
+            ${CONF_DIR}/ldop compose unpause $i
           done
           echo "#############################################"
           echo "All containers are now unpaused."
@@ -96,7 +96,7 @@ basic() {
           echo "There are no containers paused."
         fi
         echo "...stopping LDOP..."
-        ${CONF_DIR}/adop compose down
+        ${CONF_DIR}/ldop compose down
       else
         echo "Exiting."
         exit 0
@@ -112,19 +112,19 @@ basic() {
 
   echo "...starting LDOP with temporary volumes..."
   if [ $W -eq 0 ]
-  then  
-    echo "/adop compose init --without-load --without-pull"
-    ${CONF_DIR}/adop compose -v test_local init --without-load --without-pull
+  then
+    echo "/ldop compose init --without-load --without-pull"
+    ${CONF_DIR}/ldop compose -v test_local init --without-load --without-pull
   else
     echo "...-w flag specified; omitting without-pull..."
-    echo "/adop compose init --without-load"
-    ${CONF_DIR}/adop compose -v test_local init --without-load
+    echo "/ldop compose init --without-load"
+    ${CONF_DIR}/ldop compose -v test_local init --without-load
   fi
-  
+
   # Sources to obtain the password for Jenkins
   source ${CONF_DIR}/conf/env.provider.sh
   source ${CONF_DIR}/credentials.generate.sh
-  source ${CONF_DIR}/env.config.sh 
+  source ${CONF_DIR}/env.config.sh
 
   ############### Test if Load_Platform job works properly ###############
   echo "Testing if Load_Platform job is successful..."
@@ -143,7 +143,7 @@ basic() {
   docker exec jenkins curl -s --data '' jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
   echo "...triggered the job Load_Platform to build with default parameters..."
 
-  # Disable -e as set in ADOP...
+  # Disable -e as set in ldop...
   set +e
 
   # ...while the successful curl of the lastBuild information
@@ -159,7 +159,7 @@ basic() {
     # (only update the "job currently executing" variable if the curl succeeds)
     if [ $? -eq 0 ]
     then
-      # Grep will return 0 (successfully obtained null result) 
+      # Grep will return 0 (successfully obtained null result)
       # while the build is running
       echo $CURL | grep building\":true > /dev/null
       GREP_RETURN_CODE=$?
@@ -170,7 +170,7 @@ basic() {
   echo "...Load_Platform job completed! Build Status: $RESULT"
 
   set -e
-  
+
   ############### Tested if Load_Platform job works properly ###############
 
   echo
@@ -188,7 +188,7 @@ basic() {
   STATS[6]=$(docker ps -f "status=dead" --format "{{.Names}}: {{.Status}}")
 
   echo "...stopping the test and removing volumes..."
-  ${CONF_DIR}/adop compose -v test_local down --volumes
+  ${CONF_DIR}/ldop compose -v test_local down --volumes
 
   echo
   echo "#######################"
