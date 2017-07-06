@@ -150,12 +150,31 @@ done
 
     echo "* Initialising ADOP"
 
+    # Check for need of sudo for certs
+    set +e
+    REG=$(docker volume ls | grep registry_certs)
+    if [ -z "$REG" ] && [ $EUID -ne 0 ]
+    then
+        echo "sudo required for certbot, please run as root"
+        exit
+    fi
+    set -e
+
     # Load variables
     prep_env
 
     # Create the network
     echo "* Setting up Docker Network"
     create_network
+
+    # create registry_cert container if necessary
+    if [ -n "$REG" ] 
+    then 
+        echo "Registry volume exists, moving on"
+    else
+        echo "Registry volume doesn't exist; creating"
+        docker volume create ${REGISTRY_CERT_VOL}
+    fi
 
     # Run the Docker compose commands
 
@@ -251,6 +270,13 @@ done
         echo "DOCKER_TLS_VERIFY not set to 1, skipping certificate generation"
     fi
     
+    # create certs for registry container if necessary
+    if [ -z "$REG" ] 
+    then
+      echo "Registry volume is new, creating certs"
+      ./adop certbot gen-export-certs registry.localhost registry
+    fi
+    
     # Tell the user something useful
     echo
     echo '##########################################################'
@@ -268,7 +294,8 @@ done
     echo "Login using the following credentials:"
     echo "  Username: ${INITIAL_ADMIN_USER}"
     echo "  Password: ${INITIAL_ADMIN_PASSWORD_PLAIN}"
-}
+
+}  # end of init()
 
 create_network() {
     if ! docker network create ${CUSTOM_NETWORK_NAME} &> /dev/null; then
@@ -361,11 +388,13 @@ gen_certs() {
 }
 
 run_compose() {
+
     # Load variables
     prep_env
 
     compose_cmd=$1
     shift
+
 
     # If total overrides have been provided then just use them
     # Else use "our" file list

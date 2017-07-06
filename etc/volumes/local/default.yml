@@ -22,6 +22,7 @@ volumes:
   jenkins_home:
   jenkins_home:
   registry_certs:
+    external: true
   registry_data:
 
 services:

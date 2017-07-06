@@ -20,7 +20,7 @@ services:
   logstash:
     container_name: logstash
     restart: always
-    image: accenture/adop-logstash:0.1.0
+    image: liatrio/ldop-logstash:0.1.0
     build: submodules/ldop-logstash
     environment:
       - "constraint:tier==public"
@@ -44,7 +44,7 @@ services:
   proxy:
     container_name: proxy
     restart: always
-    image: accenture/adop-nginx:0.3.0
+    image: liatrio/ldop-nginx:0.3.0
     build: submodules/ldop-nginx
     depends_on:
       - "elasticsearch"
@@ -66,7 +66,7 @@ services:
   ldap:
     container_name: ldap
     restart: always
-    image: accenture/adop-ldap:0.1.3
+    image: liatrio/ldop-ldap:0.1.3
     build: submodules/ldop-ldap
     depends_on:
       - "elasticsearch"
@@ -104,7 +104,7 @@ services:
   gerrit:
     container_name: gerrit
     restart: always
-    image: accenture/adop-gerrit:0.1.3
+    image: liatrio/ldop-gerrit:0.1.3
     build: submodules/ldop-gerrit
     privileged: true
     depends_on:
@@ -162,7 +162,7 @@ services:
   sensu-api:
     container_name: sensu-api
     restart: always
-    image: accenture/adop-sensu:0.2.0
+    image: liatrio/ldop-sensu:0.2.0
     build: submodules/ldop-sensu
     command: api
     depends_on:
@@ -179,7 +179,7 @@ services:
   sensu-server:
     container_name: sensu-server
     restart: always
-    image: accenture/adop-sensu:0.2.0
+    image: liatrio/ldop-sensu:0.2.0
     build: submodules/ldop-sensu
     command: server
     depends_on:
@@ -195,7 +195,7 @@ services:
   sensu-client:
     container_name: sensu-client
     restart: always
-    image: accenture/adop-sensu:0.2.0
+    image: liatrio/ldop-sensu:0.2.0
     build: submodules/ldop-sensu
     command: client
     depends_on:
@@ -254,7 +254,7 @@ services:
   sonar:
     container_name: sonar
     restart: always
-    image: accenture/adop-sonar:0.2.0
+    image: liatrio/ldop-sonar:0.2.0
     build: submodules/ldop-sonar
     depends_on:
       - "elasticsearch"
@@ -281,7 +281,7 @@ services:
   jenkins:
     container_name: jenkins
     restart: always
-    image: accenture/adop-jenkins:0.2.6
+    image: liatrio/ldop-jenkins:0.2.6
     build: submodules/ldop-jenkins
     depends_on:
       - "elasticsearch"
@@ -342,7 +342,7 @@ services:
   jenkins-slave:
     container_name: jenkins-slave
     restart: always
-    image: accenture/adop-jenkins-slave:0.1.4
+    image: liatrio/ldop-jenkins-slave:0.1.4
     build: submodules/ldop-jenkins-slave
     depends_on:
       - "elasticsearch"
@@ -398,7 +398,7 @@ services:
   ldap-ltb:
     container_name: ldap-ltb
     restart: always
-    image: accenture/adop-ldap-ltb:0.1.0
+    image: liatrio/ldop-ldap-ltb:0.1.0
     build: submodules/ldop-ldap-ltb
     depends_on:
       - "elasticsearch"
@@ -415,7 +415,7 @@ services:
   ldap-phpadmin:
     container_name: ldap-phpadmin
     restart: always
-    image: accenture/adop-ldap-phpadmin:0.1.0
+    image: liatrio/ldop-ldap-phpadmin:0.1.0
     build: submodules/ldop-ldap-phpadmin
     depends_on:
       - "elasticsearch"
