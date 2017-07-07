@@ -1,13 +1,13 @@
-# Providers
-
 provider "aws" {
   region = "us-west-2"
 }
 
-# Resources
+resource "random_id" "test" {
+  byte_length = 4
+}
 
 resource "aws_security_group" "test_env" {
-  name = "terraform_test_env"
+  name = "terraform_test_env_${random_id.test.hex}"
 
   ingress {
     from_port   = 22
@@ -26,7 +26,7 @@ resource "aws_security_group" "test_env" {
 }
 
 resource "aws_key_pair" "test_key" {
-  key_name = "terraform-ldop"
+  key_name = "terraform-ldop_${random_id.test.hex}"
   public_key = "${file("${path.module}/terraform.key.pub")}"
 }
 
@@ -35,6 +35,10 @@ resource "aws_instance" "test_env" {
   key_name               = "${aws_key_pair.test_key.key_name}"
   ami                    = "ami-6df1e514"
   vpc_security_group_ids = ["${aws_security_group.test_env.id}"]
+
+  tags = {
+    Name = "terraform_integration_test_${random_id.test.hex}"
+  }
 
   root_block_device {
     volume_size = 16
@@ -76,19 +80,8 @@ resource "aws_instance" "test_env" {
       private_key = "${file("${path.module}/terraform.key")}"
     }
 
-    source      = "${path.module}/docker-compose.yml"
+    source      = "${path.module}/../../docker-compose.yml"
     destination = "~/ldop-docker-compose/docker-compose.yml"
-  }
-
-  # Copy test secrets file
-  provisioner "file" {
-    connection {
-      user        = "ec2-user"
-      private_key = "${file("${path.module}/terraform.key")}"
-    }
-
-    source      = "${path.module}/platform.secrets.sh"
-    destination = "~/ldop-docker-compose/platform.secrets.sh"
   }
 
   # Run integration test
@@ -100,7 +93,7 @@ resource "aws_instance" "test_env" {
 
     inline = [
       "cd ~/ldop-docker-compose",
-      "sudo ./adop compose init", # Also creates certs
+      "echo 'test\n' | sudo ./adop compose init",
       "./adop compose down --volumes",
       "./adop test basic",
     ]
