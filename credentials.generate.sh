@@ -39,7 +39,7 @@ function checkPassword {
 # Function to randomly generate a 16-character password with letters and numbers
 function createPassword {
 	sleep 1
-	echo "$(date +%s%N | openssl sha256 | awk '{print $2}' | head -c 12)$[ 1000 + $[ RANDOM % 9999 ]]"
+	echo "$(date +%s%N | openssl dgst -sha256 | awk '{print $2}' | head -c 12)$[ 1000 + $[ RANDOM % 9999 ]]"
 }
 
 
