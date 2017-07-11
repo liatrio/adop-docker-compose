@@ -90,10 +90,10 @@ prep_env() {
 
     # Setting Compose File Lists
     if [ "${LOGS}" = "NO" ]; then
-        export ADOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml"
+        export LDOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml"
         echo "* Logs being send to stdout, specified logging driver not being used..."
     else
-        export ADOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml -f ${CLI_DIR}/etc/logging/${LOGGING_DRIVER}/default.yml"
+        export LDOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml -f ${CLI_DIR}/etc/logging/${LOGGING_DRIVER}/default.yml"
     fi
 }
 
@@ -169,7 +169,7 @@ done
         run_compose pull
     fi
 
-    echo "* Bringing up ADOP..."
+    echo "* Bringing up LDOP..."
     run_compose up -d
 
     # Wait for Jenkins and Gerrit to come up before proceeding
@@ -196,7 +196,7 @@ done
     if [ -z "$REG" ]
     then
       echo "Registry volume is new, creating certs"
-      ./adop certbot gen-export-certs registry.localhost registry
+      ./ldop certbot gen-export-certs registry.localhost registry
     fi
 
     # Tell the user something useful
@@ -210,7 +210,7 @@ done
     echo '  source credentials.generate.sh'
     echo '  source env.config.sh'
     echo
-    echo "You can check if any variables are missing with: ./adop compose config  | grep 'WARNING'"
+    echo "You can check if any variables are missing with: ./ldop compose config  | grep 'WARNING'"
     echo
     echo "Navigate to http://${TARGET_HOST} in your browser to use your new DevOps Platform!"
     echo "Login using the following credentials:"
@@ -325,7 +325,7 @@ run_compose() {
     else
         # docker-compose ${ELKFILEOPTS} ${compose_cmd} "$@"
         # echo
-        docker-compose ${ADOPFILEOPTS} ${OVERRIDES} ${compose_cmd} "$@"
+        docker-compose ${LDOPFILEOPTS} ${OVERRIDES} ${compose_cmd} "$@"
     fi
 }
 
