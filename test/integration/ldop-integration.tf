@@ -95,7 +95,7 @@ resource "aws_instance" "test_env" {
       "cd ~/ldop-docker-compose",
       "echo 'test\n' | sudo ./adop compose init",
       "./adop compose down --volumes",
-      "./adop test basic",
+      "./adop test -f basic",
     ]
   }
 }
