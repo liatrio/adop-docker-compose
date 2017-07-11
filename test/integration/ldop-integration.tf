@@ -2,6 +2,10 @@ provider "aws" {
   region = "us-west-2"
 }
 
+variable "branch_name" {
+  default = "master"
+}
+
 resource "random_id" "test" {
   byte_length = 4
 }
@@ -70,6 +74,7 @@ resource "aws_instance" "test_env" {
 
     inline = [
       "git clone https://github.com/liatrio/ldop-docker-compose.git",
+      "git -C ./ldop-docker-compose checkout ${var.branch_name}",
     ]
   }
 
