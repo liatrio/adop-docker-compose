@@ -105,12 +105,6 @@ set_active() {
   set +e
   echo " ...checking if LDOP is currently active..."
 
-  if [ ! -f "${CONF_DIR}/platform.secrets.sh"  ]
-  then
-    echo "Error: LDOP has not been initialized. Run the credentials.generate.sh script."
-    exit 1
-  fi
-
   PS=$(${CONF_DIR}/ldop compose ps 2>/dev/null)
 
   # Get all the output after the last occurance of *-\s
@@ -562,6 +556,11 @@ basic() {
   fi
 }
 
+if [ ! -f "${CONF_DIR}/platform.secrets.sh"  ]
+then
+  echo "Error: LDOP has not been initialized. Run the credentials.generate.sh script."
+  exit 1
+fi
 
 shift $(($OPTIND -1))
 SUBCOMMAND_OPT="${1:-help}"
