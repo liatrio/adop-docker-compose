@@ -15,12 +15,55 @@ help() {
     cmd_usage echo
     echo
     echo "Available subcommands are:"
-    printf "    %-20s   %s\n" "basic" "Test basic functionality."
+    printf "    %-20s   %s\n" "basic" \
+      "Test basic functionality using a test environment."
+    printf "    %-20s   %s\n" "activate" "Start a test environment."
+    printf "    %-20s   %s\n" "deactivate" "Stop a test environment."
+    printf "    %-20s   %s\n" "job" "Trigger Jenkins jobs and grab results."
     printf "    %-20s   %s\n" "help" "Prints this help information"
     echo
 }
 
-basic_help()
+
+activate_help() 
+{
+    echo
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} activate [<options>]"
+    echo
+    printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+    printf "    %-3s   %s\n" "" "-h : Prints this help information."
+    echo
+}
+
+deactivate_help() 
+{
+    echo
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} deactivate [<options>]"
+    echo
+    printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+    printf "    %-3s   %s\n" "" "-h : Prints this help information."
+    echo
+}
+
+job_help() 
+{
+    echo
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} job [<options>]"
+    echo
+    printf "    %-2s   %s\n" "" "Options:"
+    printf "    %-3s   %s\n" "" \
+      "-p <job-name>: Run a parameterized job with default parameters."
+    printf "    %-3s   %s\n" "" \
+      "-b <job-name>: Run a basic job."
+    printf "    %-3s   %s\n" "" \
+      "-s : Exit on error if job result is not \"SUCCESS\"."
+    printf "    %-3s   %s\n" "" "-h : Prints this help information."
+    echo
+}
+
+basic_help() 
 {
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
@@ -28,21 +71,440 @@ basic_help()
     printf "    %-2s   %s\n" "" "Options:"
     printf "    %-3s   %s\n" "" "-w : Execute init --with-pull."
     printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
+    printf "    %-3s   %s\n" "" \
+      "-e : Exit on error if Load_Platform is unsuccessful."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
 
-basic() {
-  # Parameters
-  W=0
-  F=0
+# Check if LDOP containers are paused; if so, unpause them. Output steps.
+compose_unpause_all() {
+  echo " ...checking which containers are unpaused..."
+  PAUSED_CONTAINERS=$(${CONF_DIR}/ldop compose ps 2>/dev/null | grep Paused | \
+  awk -F'[[:space:]]' '{print $1}')
+  if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
+  then
+    COUNT=$(wc -w <<< $PAUSED_CONTAINERS | tr -d '[:space:]')
+    echo " There are $COUNT containers paused."
+    echo " The following containers are paused..."
+    echo ' '$PAUSED_CONTAINERS
+    for i in $PAUSED_CONTAINERS
+    do
+      echo " ...unpausing $i..."
+      ${CONF_DIR}/ldop compose unpause $i
+    done
+    echo " All containers are now unpaused."
+  else
+    echo " There are no containers paused."
+  fi
+  echo '##########################################################'
+}
+
+# Determine if LDOP is actively running or paused. Output steps.
+set_active() {
+  set +e
+  echo " ...checking if LDOP is currently active..."
+
+  if [ ! -f "${CONF_DIR}/platform.secrets.sh"  ]
+  then
+    echo "Error: LDOP has not been initialized. Run the credentials.generate.sh script."
+    exit 1
+  fi
+
+  PS=$(${CONF_DIR}/ldop compose ps 2>/dev/null)
+
+  # Get all the output after the last occurance of *-\s
+  AFTER_HEADER=${PS##*----}
+
+  # If compose ps returned any values... (A string with more than 0 char)
+  if [ "${#AFTER_HEADER}" -gt "0" ]
+  then
+    ACTIVE=true
+  else
+    ACTIVE=false
+  fi
+  if [ "$ACTIVE" = true ]
+  then
+    echo ' ...LDOP is active...'
+  else
+    echo ' ...LDOP is not active...'
+  fi
+  echo '##########################################################'
+  set -e
+}
+
+
+# Takes -f flag as a parameter. Unpauses and stops LDOP if active.
+# If -f, does not prompt for confirmation.
+pause_and_stop() {
+  if [ "$1" = false ]
+  then
+    # set_active() sets ACTIVE to true if /ldop compose ps returns values
+    set_active
+    if [ "$ACTIVE" = true ]
+    then
+      echo ' Warning!'
+      read -p " Proceed to unpause & shut down LDOP containers? (Y/N) " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]
+      then
+        compose_unpause_all
+        echo ' ...stopping LDOP... '
+        ${CONF_DIR}/ldop compose down
+      else
+        echo ' ...exiting. '
+        exit 0
+      fi
+    fi
+  else
+    echo ' -f flag specified, skipping confirmation of shut down... '
+    compose_unpause_all
+    ${CONF_DIR}/ldop compose down
+  fi
+  echo '##########################################################'
+}
+
+# Store values returned from docker ps that are not running/up.
+examine_statuses() {
+  echo ' ...storing current non-running statuses...'
+  # This should be limited to LDOP...
+  # Assign array indices for each non-running status
+  STATS[1]=$(docker ps -f "status=created" --format "{{.Names}}: {{.Status}}")
+  STATS[2]=$(docker ps -f "status=restarting" --format \
+    "{{.Names}}: {{.Status}}")
+  STATS[3]=$(docker ps -f "status=removing" --format "{{.Names}}: {{.Status}}")
+  STATS[4]=$(docker ps -f "status=paused" --format "{{.Names}}: {{.Status}}")
+  STATS[5]=$(docker ps -f "status=exited" --format "{{.Names}}: {{.Status}}")
+  STATS[6]=$(docker ps -f "status=dead" --format "{{.Names}}: {{.Status}}")
+  echo '##########################################################'
+}
+
+# Print the values stored in examine_statuses() if they exist.
+print_statuses() {
+  echo " LDOP Containers with Non-running Statuses:"
+  # Iterate over the 6 array elements
+  for i in `seq 1 6`
+  do
+    # Store the array element in item
+    item=${STATS[$i]}
+    # If the element contains more than 0 characters...
+    # This is necessary as the docker ps command returns successful even
+    # with no output. That would print a blank line.
+    if [ "${#item}" -gt "0" ]
+    then
+      # Print the non-running statuses...
+      echo ' '${STATS[$i]}
+    fi
+  done
+  echo '##########################################################'
+}
+
+test_basic_job () {
+  echo ' Testing Job '$1
+  # Sources to obtain the password for Jenkins
+  source ${CONF_DIR}/conf/env.provider.sh
+  source ${CONF_DIR}/credentials.generate.sh
+  source ${CONF_DIR}/env.config.sh 
+  # The URL of the job $1 as hit from within the Jenkins container
+  JOB_URL=localhost:8080/jenkins/job/$1
+  # A value to determine if the job is currently executing
+  GREP_RETURN_CODE=0
+  # Trigger the job
+  # -s silent, don't output curl details
+  # docker exec jenkins, execute from within jenkins container
+  # --data '', execute the curl as a POST
+  # /buildWithParameters, build with default parameters
+  docker exec jenkins curl -s --data '' \
+    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/build
+  echo " ...triggered the job '$1' to build..."
+  # Disable -e as set in LDOP...
+  set +e
+  # ...while the successful curl of the lastBuild information
+  # holds a null value as the result...
+  # "while the job is still executing"
+  while [ $GREP_RETURN_CODE -eq 0 ]
+  do
+    # Give the job time to build, check every 30 seconds
+    echo " ...waiting 30 seconds for '$1' job to build... "
+    sleep 30
+    CURL=$(docker exec jenkins curl -s \
+      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json?tree=building)
+    # If the curl command did not error...
+    # (only update the "job currently executing" variable if the curl succeeds)
+    if [ $? -eq 0 ]
+    then
+      # Grep will return 0 (successfully obtained null result) 
+      # while the build is running
+      echo $CURL | grep building\":true > /dev/null
+      GREP_RETURN_CODE=$?
+    fi
+    # If the curl command errored, sleep and try again
+  done
+  CURL=$(docker exec jenkins curl -s \
+    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json?tree=result)
+  RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
+  echo " ...'$1' job completed! Build Status: $RESULT"
+  set -e
+  echo '##########################################################'
+}
+
+test_parameterized_job () {
+  echo ' Testing Job '$1
+  # Sources to obtain the password for Jenkins
+  source ${CONF_DIR}/conf/env.provider.sh
+  source ${CONF_DIR}/credentials.generate.sh
+  source ${CONF_DIR}/env.config.sh 
+  # The URL of the job $1 as hit from within the Jenkins container
+  JOB_URL=localhost:8080/jenkins/job/$1
+  # A value to determine if the job is currently executing
+  GREP_RETURN_CODE=0
+  # Trigger the parameterized job with default parameters.
+  # -s silent, don't output curl details
+  # docker exec jenkins, execute from within jenkins container
+  # --data '', execute the curl as a POST
+  # /buildWithParameters, build with default parameters
+  docker exec jenkins curl -s --data '' \
+    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
+  echo " ...triggered the job '$1' to build with default parameters..."
+  # Disable -e as set in LDOP...
+  set +e
+  # ...while the successful curl of the lastBuild information
+  # holds a null value as the result...
+  # "while the job is still executing"
+  while [ $GREP_RETURN_CODE -eq 0 ]
+  do
+    # Give the job time to build, check every 30 seconds
+    echo " ...waiting 30 seconds for '$1' job to build... "
+    sleep 30
+    CURL=$(docker exec jenkins curl -s \
+      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json)
+    # If the curl command did not error...
+    # (only update the "job currently executing" variable if the curl succeeds)
+    if [ $? -eq 0 ]
+    then
+      # Grep will return 0 (successfully obtained null result) 
+      # while the build is running
+      echo $CURL | grep building\":true > /dev/null
+      GREP_RETURN_CODE=$?
+    fi
+    # If the curl command errored, sleep and try again
+  done
+  RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
+  echo " ...'$1' job completed! Build Status: $RESULT"
+  set -e
+  echo '##########################################################'
+}
+
+start_with_test_volumes() {
+  echo " ...starting LDOP with temporary volumes..."
+  if [ "$1" = false ]
+  then  
+    echo " Running /ldop compose init --without-load --without-pull"
+    ${CONF_DIR}/ldop compose -v test_local init --without-load --without-pull
+  else
+    echo "...-w flag specified; omitting without-pull..."
+    echo " Running /ldop compose init --without-load"
+    ${CONF_DIR}/ldop compose -v test_local init --without-load
+  fi
+  echo '##########################################################'
+}
+
+stop_and_remove_test_volumes() {
+  echo " ...stopping the test and removing volumes..."
+  ${CONF_DIR}/ldop compose -v test_local down --volumes
+  echo '##########################################################'
+}
+
+start_test_text() {
+  echo '##########################################################'
+  echo ' '$1' Test Started '
+  echo '##########################################################'
+}
+
+end_test_text() {
+  echo ' '$1' Test Complete'
+  echo '##########################################################'
+}
+
+results_test_text() {
+  echo ' '$1' Test Results'
+  echo '##########################################################'
+}
+
+job() {
+  # Initialize flag representation variables
+  JOB_P_FLAG=false
+  JOB_B_FLAG=false
+  JOB_S_FLAG=false
+  JOB_BASIC="unset"
+  JOB_PARAM="unset"
+  while getopts "b:p:sh" opt; do
+    case $opt in
+      b)
+        JOB_B_FLAG=true
+        JOB_BASIC=${OPTARG}
+        ;;
+      p)
+        JOB_P_FLAG=true
+        JOB_PARAM=${OPTARG}
+        ;;
+      s)
+        JOB_S_FLAG=true
+        ;;
+      h)
+        job_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        job_help
+        exit 1
+        ;;
+    esac
+  done
+
+  if [ "$JOB_P_FLAG" = true ]
+  then
+    test_parameterized_job $JOB_PARAM
+    # Inform the user that results are to follow
+    results_test_text "Parameterized Job"
+    echo " $JOB_PARAM Build Result: $RESULT"
+    if [ "$JOB_S_FLAG" = true ]
+    then
+      if [ "$RESULT" != "SUCCESS" ]
+      then
+        echo "Error: Build not successful."
+        exit 1
+      fi
+    fi
+  fi
+
+  if [ "$JOB_B_FLAG" = true ]
+  then
+    test_basic_job $JOB_BASIC
+    # Inform the user that results are to follow
+    results_test_text "Basic Job"
+    echo " $JOB_BASIC Build Result: $RESULT"
+    if [ "$JOB_S_FLAG" = true ]
+    then
+      if [ "$RESULT" != "SUCCESS" ]
+      then
+        echo "Error: Build not successful."
+        exit 1
+      fi
+    fi
+  fi
+
+  if [ "$JOB_B_FLAG" = false ]
+  then
+    if [ "$JOB_P_FLAG" = false ]
+    then
+      echo "Error: No job specified. Use \"/ldop test job -h\" for help."
+      exit 1
+    fi
+  fi
+}
+
+activate() {
+  # Initialize flag representation variables
+  ACTIVATE_F_FLAG=false
+  ACTIVATE_W_FLAG=false
   while getopts "wfh" opt; do
     case $opt in
       w)
-        W=1
+        ACTIVATE_W_FLAG=true
         ;;
       f)
-        F=1
+        ACTIVATE_F_FLAG=true
+        ;;
+      h)
+        activate_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        activate_help
+        exit 1
+        ;;
+    esac
+  done
+  
+  pause_and_stop $ACTIVATE_F_FLAG
+ 
+  if [ "$ACTIVATE_F_FLAG" = false ]
+  then
+    echo ' Warning!'
+    read -p " Proceed to start test environment? (Y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+      start_with_test_volumes $ACTIVATE_W_FLAG
+    else
+      echo ' ...exiting. '
+      exit 0
+    fi
+  else
+    # -f flag specified, do not prompt for confirmation
+    start_with_test_volumes $ACTIVATE_W_FLAG
+  fi
+}
+
+deactivate() {
+  DEACTIVATE_F_FLAG=false
+  while getopts "fh" opt; do
+    case $opt in
+      f)
+        DEACTIVATE_F_FLAG=true
+        ;;
+      h)
+        deactivate_help
+        exit 0
+        ;;
+      *)
+        echo "Invalid parameter(s) or option(s)."
+        deactivate_help
+        exit 1
+        ;;
+    esac
+  done
+  if [ "$DEACTIVATE_F_FLAG" = false ]
+  then
+    echo ' Warning!'
+    read -p " Proceed to shut down test environment? (Y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+      stop_and_remove_test_volumes
+    else
+      echo ' ...exiting. '
+      exit 0
+    fi
+  else
+    # -f flag specified, do not prompt for confirmation
+    stop_and_remove_test_volumes
+  fi
+}
+
+# Stop running LDOP if activate
+# Start test environment
+# Test Load_Platform job
+# Check statuses of containers
+# Exit test environment
+basic() {
+  # Initialize flag representation variables
+  BASIC_W_FLAG=false
+  BASIC_F_FLAG=false
+  BASIC_E_FLAG=false
+  while getopts "wfeh" opt; do
+    case $opt in
+      w)
+        BASIC_W_FLAG=true
+        ;;
+      f)
+        BASIC_F_FLAG=true
+        ;;
+      e)
+        BASIC_E_FLAG=true
         ;;
       h)
         basic_help
@@ -56,167 +518,50 @@ basic() {
     esac
   done
 
-  echo "...checking if LDOP is currently running..."
-  PS=$(${CONF_DIR}/ldop compose ps 2>/dev/null)
+  # Inform the user that a Basic test has been started
+  start_test_text "Basic"
+  
+  # If LDOP is currently active, stop it.
+  pause_and_stop $BASIC_F_FLAG
 
-  # Get all the output after the last occurance of *-\s
-  AFTER_HEADER=${PS##*----}
+  # Start LDOP with temporary volumes prefixed with test_
+  start_with_test_volumes $BASIC_W_FLAG
 
-  if [ $F -eq 0 ]
+  # Run Load_Platform and store the result in $RESULT globally
+  test_parameterized_job "Load_Platform"
+ 
+  # Save the state of non-running containers to output after shut down 
+  examine_statuses
+
+  MEM=$(docker stats --no-stream --format "{{.MemPerc}}" | tr -d '\%' | \
+    awk '{sum+=$1} END {print sum}')
+
+  
+  # Inform the user that the Basic test has completed
+  end_test_text "Basic"
+
+  # Stop LDOP and remove the temporary test_ volumes
+  stop_and_remove_test_volumes
+
+  # Inform the user that results are to follow
+  results_test_text "Basic"
+
+  echo " Load_Platform Build Result: $RESULT"
+  echo " Docker Memory Usage: $MEM%"
+  
+  # Print the non-running containers prior to shut down
+  print_statuses
+
+  if [ "$BASIC_E_FLAG" = true ]
   then
-    # If there are any items in /ldop compose ps...
-    if [ "${#AFTER_HEADER}" -gt "0" ]
+    if [ "$RESULT" != "SUCCESS" ]
     then
-      echo "This test will unpause any paused LDOP containers and shut them down."
-      read -p "Proceed to shut down running and paused containers? (Y/N)   " -n 1 -r
-      echo
-      if [[ $REPLY =~ ^[Yy]$ ]]
-      then
-        echo "...proceeding..."
-        echo "...checking which containers are unpaused..."
-        PAUSED_CONTAINERS=$(./ldop compose ps 2>/dev/null | grep Paused | \
-        awk -F'[[:space:]]' '{print $1}')
-        if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
-        then
-          COUNT=$(wc -w <<< $PAUSED_CONTAINERS | tr -d '[:space:]')
-          echo "#############################################"
-          echo "There are $COUNT containers paused."
-          echo "The following containers are paused..."
-          echo $PAUSED_CONTAINERS
-          echo "#############################################"
-          for i in $PAUSED_CONTAINERS
-          do
-            echo "...unpausing $i..."
-            ${CONF_DIR}/ldop compose unpause $i
-          done
-          echo "#############################################"
-          echo "All containers are now unpaused."
-          echo "#############################################"
-        else
-          echo "There are no containers paused."
-        fi
-        echo "...stopping LDOP..."
-        ${CONF_DIR}/ldop compose down
-      else
-        echo "Exiting."
-        exit 0
-      fi
+      echo "Error: Load_Platform not successful."
+      exit 1
     fi
   fi
-
-  echo
-  echo "#######################"
-  echo "# Testing in Progress #"
-  echo "#######################"
-  echo
-
-  echo "...starting LDOP with temporary volumes..."
-  if [ $W -eq 0 ]
-  then
-    echo "/ldop compose init --without-load --without-pull"
-    ${CONF_DIR}/ldop compose -v test_local init --without-load --without-pull
-  else
-    echo "...-w flag specified; omitting without-pull..."
-    echo "/ldop compose init --without-load"
-    ${CONF_DIR}/ldop compose -v test_local init --without-load
-  fi
-
-  # Sources to obtain the password for Jenkins
-  source ${CONF_DIR}/conf/env.provider.sh
-  source ${CONF_DIR}/credentials.generate.sh
-  source ${CONF_DIR}/env.config.sh
-
-  ############### Test if Load_Platform job works properly ###############
-  echo "Testing if Load_Platform job is successful..."
-
-  # The URL of the job Load_Platform as hit from within the Jenkins container
-  JOB_URL=localhost:8080/jenkins/job/Load_Platform
-
-  # A value to determine if the job is currently executing
-  GREP_RETURN_CODE=0
-
-  # Trigger the parameterized job with default parameters.
-  # -s silent, don't output curl details
-  # docker exec jenkins, execute from within jenkins container
-  # --data '', execute the curl as a POST
-  # /buildWithParameters, build with default parameters
-  docker exec jenkins curl -s --data '' jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
-  echo "...triggered the job Load_Platform to build with default parameters..."
-
-  # Disable -e as set in ldop...
-  set +e
-
-  # ...while the successful curl of the lastBuild information
-  # holds a null value as the result...
-  # "while the job is still executing"
-  while [ $GREP_RETURN_CODE -eq 0 ]
-  do
-    # Give the job time to build, check every 30 seconds
-    echo "...waiting 30 seconds for Load_Platform job to execute..."
-    sleep 30
-    CURL=$(docker exec jenkins curl -s jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json)
-    # If the curl command did not error...
-    # (only update the "job currently executing" variable if the curl succeeds)
-    if [ $? -eq 0 ]
-    then
-      # Grep will return 0 (successfully obtained null result)
-      # while the build is running
-      echo $CURL | grep building\":true > /dev/null
-      GREP_RETURN_CODE=$?
-    fi
-    # If the curl command errored, sleep and try again
-  done
-  RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
-  echo "...Load_Platform job completed! Build Status: $RESULT"
-
-  set -e
-
-  ############### Tested if Load_Platform job works properly ###############
-
-  echo
-  echo "#######################"
-  echo "#  Testing Complete   #"
-  echo "#######################"
-  echo
-
-  # Assign array indices for each non-running status
-  STATS[1]=$(docker ps -f "status=created" --format "{{.Names}}: {{.Status}}")
-  STATS[2]=$(docker ps -f "status=restarting" --format "{{.Names}}: {{.Status}}")
-  STATS[3]=$(docker ps -f "status=removing" --format "{{.Names}}: {{.Status}}")
-  STATS[4]=$(docker ps -f "status=paused" --format "{{.Names}}: {{.Status}}")
-  STATS[5]=$(docker ps -f "status=exited" --format "{{.Names}}: {{.Status}}")
-  STATS[6]=$(docker ps -f "status=dead" --format "{{.Names}}: {{.Status}}")
-
-  echo "...stopping the test and removing volumes..."
-  ${CONF_DIR}/ldop compose -v test_local down --volumes
-
-  echo
-  echo "#######################"
-  echo "#  Testing Results:   #"
-  echo "#######################"
-  echo
-
-  echo
-  echo "Load_Platform Build Result: $RESULT"
-  echo
-  echo "Docker Containers with Non-running Statuses:"
-  # Iterate over the 6 array elements
-  for i in `seq 1 6`
-  do
-    # Store the array element in item
-    item=${STATS[$i]}
-    # If the element contains more than 0 characters...
-    # This is necessary as the docker ps command returns successful even
-    # with no output. That would print a blank line.
-    if [ "${#item}" -gt "0" ]
-    then
-      # Print the non-running statuses...
-      echo ${STATS[$i]}
-    fi
-  done
-  echo "...basic test complete."
-  echo
 }
+
 
 shift $(($OPTIND -1))
 SUBCOMMAND_OPT="${1:-help}"
@@ -233,6 +578,15 @@ if [ ! -z ${SUBCOMMAND_OPT} ]; then
         ;;
     "basic")
         basic "$@"
+        ;;
+    "job")
+        job "$@"
+        ;;
+    "activate")
+        activate "$@"
+        ;;
+    "deactivate")
+        deactivate "$@"
         ;;
     *)
         echo "Invalid subcommand."
