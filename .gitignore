@@ -12,3 +12,9 @@ env.override.sh
 conf/provider/env.provider.*.sh
 *.seq
 .adop*
+
+# Terraform integration test
+terraform.tfstate
+terraform.tfstate.backup
+terraform.key
+terraform.key.pub
