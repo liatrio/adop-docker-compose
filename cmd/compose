@@ -46,8 +46,14 @@ pretty_sleep() {
 
 
 prep_env() {
+    #if the MACHINE_NAME is unset, but your environment specifies a docker-machine is being used
+    # Set the MACHINE_NAME to that of your active machine
+    if [ -n "${DOCKER_MACHINE_NAME}" ] && [ -z "${MACHINE_NAME}" ]; then
+      export MACHINE_NAME="${DOCKER_MACHINE_NAME}";
+    fi
+
     # No longer assume docker-machine is used.
-    if [ -n "$MACHINE_NAME" ]; then
+    if [ -n "${MACHINE_NAME}" ]; then
         # If the proxy IP has not been set work out the TARGET_HOST
         # Else just use it
         if [ -z "${PROXY_IP}" ]; then
@@ -60,9 +66,9 @@ prep_env() {
                    echo "HINT: Either specify one with 'adop compose -m <name>', or use 'eval \$(docker-machine env ${MACHINE_NAME})'"
                    exit 1
                 else
-                    # Set the machine
+                    export TLS="${DOCKER_TLS_VERIFY}"
                     eval $(docker-machine env $MACHINE_NAME --shell bash)
-
+                    export DOCKER_TLS_VERIFY=${TLS}
                     export TARGET_HOST=$(docker-machine ip $MACHINE_NAME)
                     export LOGSTASH_HOST=$(docker-machine ip $MACHINE_NAME)
                 fi
@@ -84,11 +90,12 @@ prep_env() {
     source ${CONF_DIR}/conf/env.provider.sh
     source ${CONF_DIR}/credentials.generate.sh
     source ${CONF_DIR}/env.config.sh
+
     if [ -f "${CONF_DIR}/env.override.sh" ]; then
         echo "Using ${CONF_DIR}/env.override.sh to override default values for environment variable."
         source ${CONF_DIR}/env.override.sh
     fi
-    
+
     # Setting Compose File Lists
     if [ "${LOGS}" = "NO" ]; then
         export ADOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml"
@@ -200,14 +207,14 @@ init() {
         esac
     done
 
-    echo ' 
-       ##        ########   #######  ########  
-       ##        ##     ## ##     ## ##     ## 
-       ##        ##     ## ##     ## ##     ## 
-       ##        ##     ## ##     ## ########  
-       ##        ##     ## ##     ## ##        
-       ##        ##     ## ##     ## ##        
-       ######### ########   #######  ##        
+    echo '
+       ##        ########   #######  ########
+       ##        ##     ## ##     ## ##     ##
+       ##        ##     ## ##     ## ##     ##
+       ##        ##     ## ##     ## ########
+       ##        ##     ## ##     ## ##
+       ##        ##     ## ##     ## ##
+       ######### ########   #######  ##
     '
 
     echo "* Initialising ADOP"
@@ -230,8 +237,8 @@ init() {
     create_network
 
     # create registry_cert container if necessary
-    if [ -n "$REG" ] 
-    then 
+    if [ -n "$REG" ]
+    then
         echo "Registry volume exists, moving on"
     else
         echo "Registry volume doesn't exist; creating"
@@ -271,18 +278,22 @@ init() {
 
     # Generate and copy the certificates to jenkins slave if TLS is enabled
     if [ "${DOCKER_TLS_VERIFY}" = "1" ]; then
-        gen_certs "${DOCKER_CLIENT_CERT_PATH}"
+        gen_certs "${DOCKER_CLIENT_CERT_PATH}";
     else
         echo "DOCKER_TLS_VERIFY not set to 1, skipping certificate generation"
     fi
-    
+
+    # Wait for Nginx to come up before proceeding
+    echo "* Waiting for Nginx to become available"
+    until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
+
     # create certs for registry container if necessary
-    if [ -z "$REG" ] 
+    if [ -z "$REG" ]
     then
       echo "Registry volume is new, creating certs"
       ./adop certbot gen-export-certs registry.localhost registry
     fi
-    
+
     # Tell the user something useful
     echo
     echo '##########################################################'
@@ -316,23 +327,23 @@ gen_certs() {
     CERT_PATH=$1
     if [ -z ${CERT_PATH} ]; then
         echo "
-          Usage : 
+          Usage :
             gen-certs <docker_client_certificate_path>
-          
-          <docker_client_certificate_path>: 
+
+          <docker_client_certificate_path>:
             This is the path of the certificate on jenkins slave container
             to be able to run docker commands against docker swarm.
             Note - absolute path is required.
-              
-          Example: 
+
+          Example:
             gen-certs /root/.docker
         "
         exit 1
     fi
 
     ####
-    # Windows Git bash terminal identifies 
-    # /CN=client as a path and appends the absolute path 
+    # Windows Git bash terminal identifies
+    # /CN=client as a path and appends the absolute path
     # of parent directory to it
     ####
     HOST_OS=$(uname)
@@ -344,7 +355,7 @@ gen_certs() {
 
     ####
     # Fresh start
-    #### 
+    ####
     TEMP_CERT_PATH="${HOME}/docker_certs"
     rm -rf ${TEMP_CERT_PATH}
     mkdir -p ${TEMP_CERT_PATH}
@@ -383,7 +394,7 @@ gen_certs() {
 
     ####
     # * Remove unnecessary files
-    # * Copy the certificates to slave 
+    # * Copy the certificates to slave
     ####
     echo "Uploading certificates to Jenkins Slave at: ${CERT_PATH}"
     rm -f ${TEMP_CERT_PATH}/extfile.cnf ${TEMP_CERT_PATH}/client.csr

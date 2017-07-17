@@ -1,3 +1,12 @@
+case "$OSTYPE" in
+"linux-gnu" | "cygwin")
+  SED_CMD="sed -i "
+  ;;
+"darwin"*)
+  SED_CMD="sed -i ''"
+  ;;
+esac
+
 # Recursive function to check strength of user password
 function checkPassword {
 
@@ -52,7 +61,7 @@ else
 	
 	# Adding commit ID to track version of example secrets file
 	VERSION_ID=$(git log -1 --format="%H" HEAD platform.secrets.sh.example)
-	sed -i'' -e "s/###VERSION_ID###/$VERSION_ID/g" platform.secrets.sh
+  eval "$SED_CMD -e \"s/###VERSION_ID###/$VERSION_ID/g\" platform.secrets.sh"
 
 	# Check for username, prompt one if not entered and write it to secrets file
 	if [[ -z $INITIAL_ADMIN_USER ]] || [[ ${INITIAL_ADMIN_USER} = "admin" ]]; then
@@ -66,7 +75,7 @@ else
 	else
 		echo "Your user name is $INITIAL_ADMIN_USER"
 	fi
-	sed -i'' -e "s/###INITIAL_ADMIN_USER###/$INITIAL_ADMIN_USER/g" platform.secrets.sh
+  eval "$SED_CMD -e \"s/###INITIAL_ADMIN_USER###/$INITIAL_ADMIN_USER/g\" platform.secrets.sh"
 
 	# Generate a random password if user leaves password flag blank 
     # Else continue checking the input password
@@ -78,21 +87,21 @@ else
 	else
 		checkPassword $INITIAL_ADMIN_PASSWORD_PLAIN
 	fi
-	sed -i'' -e "s/###INITIAL_ADMIN_PASSWORD_PLAIN###/$INITIAL_ADMIN_PASSWORD_PLAIN/g" platform.secrets.sh
+  eval "$SED_CMD -e \"s/###INITIAL_ADMIN_PASSWORD_PLAIN###/$INITIAL_ADMIN_PASSWORD_PLAIN/g\" platform.secrets.sh"
 		
 	# Generate random passwords for Jenkins, Gerrit, SQL, LDAP Admin and place them in secrets file
 	echo "Generating random passwords for Jenkins, Gerrit, SQL and LDAP admin..."
 	PASSWORD_JENKINS=$(createPassword)
-	sed -i'' -e "s/###PASSWORD_JENKINS_PLAIN###/$PASSWORD_JENKINS/g" platform.secrets.sh
+  eval "$SED_CMD -e \"s/###PASSWORD_JENKINS_PLAIN###/$PASSWORD_JENKINS/g\" platform.secrets.sh"
 	
 	PASSWORD_GERRIT=$(createPassword)
-	sed -i'' -e "s/###PASSWORD_GERRIT_PLAIN###/$PASSWORD_GERRIT/g" platform.secrets.sh
+  eval "$SED_CMD -e \"s/###PASSWORD_GERRIT_PLAIN###/$PASSWORD_GERRIT/g\" platform.secrets.sh"
 	
 	PASSWORD_SQL=$(createPassword)
-	sed -i'' -e "s/###PASSWORD_SQL_PLAIN###/$PASSWORD_SQL/g" platform.secrets.sh
+  eval "$SED_CMD -e \"s/###PASSWORD_SQL_PLAIN###/$PASSWORD_SQL/g\" platform.secrets.sh"
 
 	PASSWORD_LDAP=$(createPassword)
-	sed -i'' -e "s/###LDAP_PWD###/$PASSWORD_LDAP/g" platform.secrets.sh
+  eval "$SED_CMD -e \"s/###LDAP_PWD###/$PASSWORD_LDAP/g\" platform.secrets.sh"
 
 fi
 
