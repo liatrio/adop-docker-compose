@@ -208,7 +208,7 @@ gen_letsencrypt_certs() {
         -p 80:80 \
         -p 443:443 \
         -v registry_certs:/etc/letsencrypt \
-        liatrio/certbot:0.0.1 \
+        liatrio/ldop-certbot:0.0.1 \
         certonly --standalone -d ${DOMAIN_NAME} --text --non-interactive --register-unsafely-without-email --agree-tos
 
     if [ -n "${SERVICE_NAME}" ]; then
