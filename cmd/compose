@@ -111,7 +111,7 @@ prep_env() {
         echo "Extension not found: $ext. Exiting."
         exit 1 
       else
-        export ADOPFILEOPTS="${ADOPFILEOPTS} -f ${ext_path}"
+        export LDOPFILEOPTS="${LDOPFILEOPTS} -f ${ext_path}"
       fi
 
       # Add extension sensu client subscription
