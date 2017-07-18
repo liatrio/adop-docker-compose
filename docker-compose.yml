@@ -208,7 +208,7 @@ services:
       CLIENT_ADDRESS: 127.0.0.1
       RABBITMQ_HOST: sensu-rabbitmq
       JENKINS_PREFIX: jenkins
-      CLIENT_SUBSCRIPTIONS: "proxy,gerrit,jenkins,nexus,sonarqube,sensu,kibana"
+      CLIENT_SUBSCRIPTIONS: "${SENSU_CLIENT_SUBSCRIPTIONS}"
 
   sensu-rabbitmq:
     container_name: sensu-rabbitmq
@@ -394,28 +394,6 @@ services:
       REMOTE_HOST: "http://selenium-node-firefox:5555"
       HUB_PORT_4444_TCP_ADDR: "selenium-hub"
       HUB_PORT_4444_TCP_PORT: "4444"
-
-  nexus:
-    container_name: nexus
-    restart: always
-    image:  liatrio/ldop-nexus:0.1.3
-    build:  submodules/ldop-nexus
-    depends_on:
-      - "elasticsearch"
-      - "logstash"
-      - "kibana"
-    expose:
-      - "8081"
-    environment:
-      NEXUS_BASE_URL: "${PROTO}://${TARGET_HOST}/nexus"
-      LDAP_SEARCH_BASE: "${LDAP_FULL_DOMAIN}"
-      LDAP_ENABLED: "true"
-      LDAP_URL: "ldap"
-      LDAP_BIND_DN: "${LDAP_ADMIN},${LDAP_FULL_DOMAIN}"
-      LDAP_USER_PASSWORD_ATTRIBUTE: "userPassword"
-      LDAP_USER_BASE_DN: "${LDAP_USER_BASE_DN}"
-      LDAP_GROUP_BASE_DN: "${LDAP_GROUP_BASE_DN}"
-      LDAP_BIND_PASSWORD: ${LDAP_PWD}
 
   ldap-ltb:
     container_name: ldap-ltb
