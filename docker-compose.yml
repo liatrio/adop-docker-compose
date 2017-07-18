@@ -44,7 +44,7 @@ services:
   proxy:
     container_name: proxy
     restart: always
-    image: liatrio/ldop-nginx:june-demo
+    image: liatrio/ldop-nginx:0.3.0
     build: submodules/ldop-nginx
     depends_on:
       - "elasticsearch"
@@ -281,7 +281,7 @@ services:
   jenkins:
     container_name: jenkins
     restart: always
-    image: liatrio/ldop-jenkins:docker-demo-blueocean
+    image: liatrio/ldop-jenkins:2.1.0
     build: submodules/ldop-jenkins
     depends_on:
       - "elasticsearch"
