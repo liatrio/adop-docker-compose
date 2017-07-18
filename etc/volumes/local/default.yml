@@ -21,7 +21,6 @@ volumes:
   jenkins_slave_home:
   jenkins_home:
   jenkins_home:
-  nexus_sonatype_work:
   registry_certs:
     external: true
   registry_data:
@@ -91,10 +90,6 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home 
       - /var/run/docker.sock:/var/run/docker.sock
-
-  nexus:
-    volumes:
-      - nexus_sonatype_work:/sonatype-work
 
   registry:
     volumes:

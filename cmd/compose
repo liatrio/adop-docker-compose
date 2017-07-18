@@ -45,8 +45,14 @@ pretty_sleep() {
 
 
 prep_env() {
+    #if the MACHINE_NAME is unset, but your environment specifies a docker-machine is being used
+    # Set the MACHINE_NAME to that of your active machine
+    if [ -n "${DOCKER_MACHINE_NAME}" ] && [ -z "${MACHINE_NAME}" ]; then
+      export MACHINE_NAME="${DOCKER_MACHINE_NAME}";
+    fi
+
     # No longer assume docker-machine is used.
-    if [ -n "$MACHINE_NAME" ]; then
+    if [ -n "${MACHINE_NAME}" ]; then
         # If the proxy IP has not been set work out the TARGET_HOST
         # Else just use it
         if [ -z "${PROXY_IP}" ]; then
@@ -59,9 +65,9 @@ prep_env() {
                    echo "HINT: Either specify one with 'LDOP compose -m <name>', or use 'eval \$(docker-machine env ${MACHINE_NAME})'"
                    exit 1
                 else
-                    # Set the machine
+                    export TLS="${DOCKER_TLS_VERIFY}"
                     eval $(docker-machine env $MACHINE_NAME --shell bash)
-
+                    export DOCKER_TLS_VERIFY=${TLS}
                     export TARGET_HOST=$(docker-machine ip $MACHINE_NAME)
                     export LOGSTASH_HOST=$(docker-machine ip $MACHINE_NAME)
                 fi
@@ -83,6 +89,7 @@ prep_env() {
     source ${CONF_DIR}/conf/env.provider.sh
     source ${CONF_DIR}/credentials.generate.sh
     source ${CONF_DIR}/env.config.sh
+
     if [ -f "${CONF_DIR}/env.override.sh" ]; then
         echo "Using ${CONF_DIR}/env.override.sh to override default values for environment variable."
         source ${CONF_DIR}/env.override.sh
@@ -95,32 +102,109 @@ prep_env() {
     else
         export LDOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml -f ${CLI_DIR}/etc/logging/${LOGGING_DRIVER}/default.yml"
     fi
+
+    # Add extension variables
+    for ext in $EXTENSIONS; do
+      # Add compose file opt
+      ext_path="${CLI_DIR}/extensions/$ext/docker-compose.yml"
+      if ! [ -f "${ext_path}" ]; then
+        echo "Extension not found: $ext. Exiting."
+        exit 1 
+      else
+        export ADOPFILEOPTS="${ADOPFILEOPTS} -f ${ext_path}"
+      fi
+
+      # Add extension sensu client subscription
+      export SENSU_CLIENT_SUBSCRIPTIONS="${SENSU_CLIENT_SUBSCRIPTIONS},$ext"
+    done
 }
 
+load_extensions () {
+    # Clear existing extension nginx configuration
+    docker run --rm -v "${PROJECT_NAME}_nginx_config:/nginx" busybox rm -f /nginx/sites-enabled/service-extension/*.conf
+
+    # Update nginx with extension configuration
+    for ext in ${EXTENSIONS}; do
+        integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
+        if [ -d "${integrations_dir}" ]; then
+            echo "* Integrating extension: $ext"
+
+            # Add proxy pass integration
+            if [ -d "${integrations_dir}/proxy" ]; then 
+                echo "  * Adding proxy integration."
+                docker cp ${integrations_dir}/proxy/sites-enabled/service-extension/. proxy:/etc/nginx/sites-enabled/service-extension
+            fi
+
+            # Add Sensu checks
+            if [ -d "${integrations_dir}/sensu/check.d" ]; then
+                echo "  * Adding sensu integration."
+                docker cp ${integrations_dir}/sensu/check.d/. sensu-server:/etc/sensu/check.d/
+            fi
+
+        fi
+    done
+
+    # Restart nginx, sensu-server
+    run_compose restart proxy sensu-server
+
+    # Wait for Nginx to come up before proceeding
+    echo "* Waiting for Nginx to become available"
+    until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
+
+    # Load extension dashboard resources
+    for ext in ${EXTENSIONS}; do
+        integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
+        proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
+
+        if [ -d "${integrations_dir}" ]; then
+            echo "* Integrating dashboard resources for extension: $ext"
+
+            # Add dashboard image resources
+            if [ -d "${integrations_dir}/proxy/release-note/img" ]; then
+                echo "  * Adding dashboard image."
+                docker cp ${integrations_dir}/proxy/release-note/img/. proxy:/usr/share/nginx/html/img
+            fi
+
+            # Add dashboard ui integrations
+            if [ -f "${integrations_dir}/proxy/release-note/plugins.json" ]; then
+                echo "  * Adding dashboard ui configuration."
+                docker run \
+                    --rm \
+                    -v "${PROJECT_NAME}_nginx_releasenote:/release-note" \
+                    -v "$(pwd)/extensions/$ext/integrations/proxy/release-note/plugins.json:/new-plugins.json" \
+                    endeveit/docker-jq \
+                    /bin/sh -c "jq -s '.[0].core[0].components = (.[0].core[0].components+.[1].core[0].components|unique_by(.id))|.[0]' \\
+                                /release-note/plugins.json /new-plugins.json \\
+                                >/release-note/tmp.json && mv /release-note/tmp.json /release-note/plugins.json"
+            fi
+        fi
+    done
+
+}
 
 init() {
 
-while [[ $1 ]]; do
-    case "$1" in
-        --without-pull)
-            export PULL="NO"
-            shift
-            ;;
-        --without-load)
-            export LOAD="NO"
-            shift
-            ;;
-        --with-stdout)
-            export LOGS="NO"
-            shift
-            ;;
-        *)
-            echo "Unrecognized option: $1"
-            help
-            exit 1
-            ;;
-    esac
-done
+    while [[ $1 ]]; do
+        case "$1" in
+            --without-pull)
+                export PULL="NO"
+                shift
+                ;;
+            --without-load)
+                export LOAD="NO"
+                shift
+                ;;
+            --with-stdout)
+                export LOGS="NO"
+                shift
+                ;;
+            *)
+                echo "Unrecognized option: $1"
+                help
+                exit 1
+                ;;
+        esac
+    done
 
     echo '
        ##        ########   #######  ########
@@ -177,13 +261,23 @@ done
     TOOL_SLEEP_TIME=30
     until [[ $(docker exec jenkins curl -I -s jenkins:${PASSWORD_JENKINS}@localhost:8080/jenkins/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep ${TOOL_SLEEP_TIME} Jenkins; done
     until [[ $(docker exec gerrit curl -I -s gerrit:${PASSWORD_GERRIT}@localhost:8080/gerrit/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep ${TOOL_SLEEP_TIME} Gerrit; done
+    
+    # Load configured extensions
+    if [ ! -z "${EXTENSIONS}" ]; then
+      load_extensions
+    fi
 
-    # Skipping load platform intentionally
-    echo "* Skipping Loading the Platform"
+    # Trigger Load_Platform in Jenkins
+    if [ "${LOAD}" = "NO" ]; then
+        echo "* Skipping Loading the Platform"
+    else
+        echo "* Loading the Platform"
+        docker exec jenkins curl -s -X POST jenkins:${PASSWORD_JENKINS}@localhost:8080/jenkins/job/Load_Platform/buildWithParameters --data token=gAsuE35s
+    fi
 
     # Generate and copy the certificates to jenkins slave if TLS is enabled
     if [ "${DOCKER_TLS_VERIFY}" = "1" ]; then
-        gen_certs "${DOCKER_CLIENT_CERT_PATH}"
+        gen_certs "${DOCKER_CLIENT_CERT_PATH}";
     else
         echo "DOCKER_TLS_VERIFY not set to 1, skipping certificate generation"
     fi
@@ -320,8 +414,8 @@ run_compose() {
 
     # If total overrides have been provided then just use them
     # Else use "our" file list
-    if [ ! -z "${TOTAL_OVERRIDES}"   ]; then
-        docker-compose ${TOTAL_OVERRIDES} ${compose_cmd} "$@"
+    if [ ! -z "${TOTAL_OVERRIDES}"  ]; then
+        docker-compose -p ${PROJECT_NAME} ${TOTAL_OVERRIDES} ${compose_cmd} "$@"
     else
         # docker-compose ${ELKFILEOPTS} ${compose_cmd} "$@"
         # echo
@@ -340,9 +434,10 @@ export OVERRIDES=""
 export TOTAL_OVERRIDES=""
 export PULL="YES"
 export MACHINE_NAME=""
+export PROJECT_NAME="ldopdockercompose"
 
 # Parameters
-while getopts "m:f:F:v:l:n:i:" opt; do
+while getopts "m:f:F:v:l:n:i:p:" opt; do
   case $opt in
     m)
       export MACHINE_NAME=${OPTARG}
@@ -364,6 +459,9 @@ while getopts "m:f:F:v:l:n:i:" opt; do
       ;;
     i)
       export PROXY_IP="${OPTARG}"
+      ;;
+    p)
+      export PROJECT_NAME="${OPTARG}"
       ;;
     *)
       echo "Invalid parameter(s) or option(s)."

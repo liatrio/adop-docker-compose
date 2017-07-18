@@ -1,0 +1,16 @@
+{
+		"core" : [
+				{
+						"type": "Tool Links",
+						"components" : [
+								{
+										"id": "nexus",
+										"title": "nexus",
+										"img": "img/nexus.png",
+										"description": "Artifact Repository",
+										"link": "/nexus/"
+								}
+						]
+				}
+		]
+}

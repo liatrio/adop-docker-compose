@@ -47,6 +47,9 @@ export CARTRIDGE_SOURCES="https://raw.githubusercontent.com/Accenture/adop-cartr
 # Jenkins Slave
 export SLAVE_EXECUTORS=1
 
+# Sensu
+export SENSU_CLIENT_SUBSCRIPTIONS="proxy,gerrit,jenkins,sonarqube,sensu,kibana"
+
 # Jenkins Certificate Path
 ####
 # "//" to cater for both Windows and Unix path
@@ -55,6 +58,10 @@ export DOCKER_CLIENT_CERT_PATH="//root/.docker/"
 
 # SSL Settings
 export PROTO="http"
- 
+
 # Registry Certs
 export REGISTRY_CERT_VOL="registry_certs"
+
+# Extension services (space-delimeted string)
+export EXTENSIONS="artifactory"
+

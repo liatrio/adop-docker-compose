@@ -192,7 +192,6 @@ print_statuses() {
   done
   echo '##########################################################'
 }
-
 test_basic_job () {
   echo ' Testing Job '$1
   # Sources to obtain the password for Jenkins
@@ -288,7 +287,6 @@ test_parameterized_job () {
   set -e
   echo '##########################################################'
 }
-
 start_with_test_volumes() {
   echo " ...starting LDOP with temporary volumes..."
   if [ "$1" = false ]
@@ -319,7 +317,6 @@ end_test_text() {
   echo ' '$1' Test Complete'
   echo '##########################################################'
 }
-
 results_test_text() {
   echo ' '$1' Test Results'
   echo '##########################################################'
@@ -511,7 +508,6 @@ basic() {
         ;;
     esac
   done
-
   # Inform the user that a Basic test has been started
   start_test_text "Basic"
   
