@@ -80,7 +80,7 @@ basic_help()
 # Check if LDOP containers are paused; if so, unpause them. Output steps.
 compose_unpause_all() {
   echo " ...checking which containers are unpaused..."
-  PAUSED_CONTAINERS=$(${CONF_DIR}/adop compose ps 2>/dev/null | grep Paused | \
+  PAUSED_CONTAINERS=$(${CONF_DIR}/ldop compose ps 2>/dev/null | grep Paused | \
   awk -F'[[:space:]]' '{print $1}')
   if [ "${#PAUSED_CONTAINERS}" -gt "0" ]
   then
@@ -91,7 +91,7 @@ compose_unpause_all() {
     for i in $PAUSED_CONTAINERS
     do
       echo " ...unpausing $i..."
-      ${CONF_DIR}/adop compose unpause $i
+      ${CONF_DIR}/ldop compose unpause $i
     done
     echo " All containers are now unpaused."
   else
@@ -104,7 +104,8 @@ compose_unpause_all() {
 set_active() {
   set +e
   echo " ...checking if LDOP is currently active..."
-  PS=$(${CONF_DIR}/adop compose ps 2>/dev/null)
+
+  PS=$(${CONF_DIR}/ldop compose ps 2>/dev/null)
 
   # Get all the output after the last occurance of *-\s
   AFTER_HEADER=${PS##*----}
@@ -143,7 +144,7 @@ pause_and_stop() {
       then
         compose_unpause_all
         echo ' ...stopping LDOP... '
-        ${CONF_DIR}/adop compose down
+        ${CONF_DIR}/ldop compose down
       else
         echo ' ...exiting. '
         exit 0
@@ -152,7 +153,7 @@ pause_and_stop() {
   else
     echo ' -f flag specified, skipping confirmation of shut down... '
     compose_unpause_all
-    ${CONF_DIR}/adop compose down
+    ${CONF_DIR}/ldop compose down
   fi
   echo '##########################################################'
 }
@@ -191,7 +192,6 @@ print_statuses() {
   done
   echo '##########################################################'
 }
-
 test_basic_job () {
   echo ' Testing Job '$1
   # Sources to obtain the password for Jenkins
@@ -210,7 +210,7 @@ test_basic_job () {
   docker exec jenkins curl -s --data '' \
     jenkins:${PASSWORD_JENKINS}@${JOB_URL}/build
   echo " ...triggered the job '$1' to build..."
-  # Disable -e as set in ADOP...
+  # Disable -e as set in LDOP...
   set +e
   # ...while the successful curl of the lastBuild information
   # holds a null value as the result...
@@ -259,7 +259,7 @@ test_parameterized_job () {
   docker exec jenkins curl -s --data '' \
     jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
   echo " ...triggered the job '$1' to build with default parameters..."
-  # Disable -e as set in ADOP...
+  # Disable -e as set in LDOP...
   set +e
   # ...while the successful curl of the lastBuild information
   # holds a null value as the result...
@@ -287,24 +287,23 @@ test_parameterized_job () {
   set -e
   echo '##########################################################'
 }
-
 start_with_test_volumes() {
   echo " ...starting LDOP with temporary volumes..."
   if [ "$1" = false ]
   then  
     echo " Running /ldop compose init --without-load --without-pull"
-    ${CONF_DIR}/adop compose -v test_local init --without-load --without-pull
+    ${CONF_DIR}/ldop compose -v test_local init --without-load --without-pull
   else
     echo "...-w flag specified; omitting without-pull..."
     echo " Running /ldop compose init --without-load"
-    ${CONF_DIR}/adop compose -v test_local init --without-load
+    ${CONF_DIR}/ldop compose -v test_local init --without-load
   fi
   echo '##########################################################'
 }
 
 stop_and_remove_test_volumes() {
   echo " ...stopping the test and removing volumes..."
-  ${CONF_DIR}/adop compose -v test_local down --volumes
+  ${CONF_DIR}/ldop compose -v test_local down --volumes
   echo '##########################################################'
 }
 
@@ -318,7 +317,6 @@ end_test_text() {
   echo ' '$1' Test Complete'
   echo '##########################################################'
 }
-
 results_test_text() {
   echo ' '$1' Test Results'
   echo '##########################################################'
@@ -392,7 +390,7 @@ job() {
   then
     if [ "$JOB_P_FLAG" = false ]
     then
-      echo "Error: No job specified. Use \"/adop test job -h\" for help."
+      echo "Error: No job specified. Use \"/ldop test job -h\" for help."
       exit 1
     fi
   fi
@@ -510,7 +508,6 @@ basic() {
         ;;
     esac
   done
-
   # Inform the user that a Basic test has been started
   start_test_text "Basic"
   
@@ -555,6 +552,11 @@ basic() {
   fi
 }
 
+if [ ! -f "${CONF_DIR}/platform.secrets.sh"  ]
+then
+  echo "Error: LDOP has not been initialized. Run the credentials.generate.sh script."
+  exit 1
+fi
 
 shift $(($OPTIND -1))
 SUBCOMMAND_OPT="${1:-help}"

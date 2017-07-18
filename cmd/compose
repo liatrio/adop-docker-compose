@@ -22,13 +22,12 @@ help() {
     cmd_usage
     echo
     echo "Available subcommands are:"
-    printf "    %-22s   %s\n" "init" "Initialises ADOP"
-    printf "    %-22s   %s\n" "init <--without-load>" "Initialises ADOP without loading the platform"
-    printf "    %-22s   %s\n" "init <--without-pull>" "Initialises ADOP without pulling images"
-    printf "    %-22s   %s\n" "init <--with-stdout>" "Initialises ADOP with logs being sent to stdout as opposed to specified logging driver"
-    printf "    %-22s   %s\n" "up" "docker-compose up for ADOP"
+    printf "    %-22s   %s\n" "init" "Initialises LDOP"
+    printf "    %-22s   %s\n" "init <--without-pull>" "Initialises LDOP without pulling images"
+    printf "    %-22s   %s\n" "init <--with-stdout>" "Initialises LDOP with logs being sent to stdout as opposed to specified logging driver"
+    printf "    %-22s   %s\n" "up" "docker-compose up for LDOP"
     printf "    %-22s   %s\n" "gen-certs <path>" "Generate client certificates for TLS-enabled Machine and copy to <path> in Jenkins Slave"
-    printf "    %-22s   %s\n" "<command>" "Runs 'docker-compose <command>' for ADOP, where <command> is not listed above"
+    printf "    %-22s   %s\n" "<command>" "Runs 'docker-compose <command>' for LDOP, where <command> is not listed above"
     printf "    %-22s   %s\n" "help" "Prints this help information"
     echo
 }
@@ -63,7 +62,7 @@ prep_env() {
                 # Check the machine exists first
                 if ! $(docker-machine ip ${MACHINE_NAME} > /dev/null 2>&1) ; then
                    echo "The specified Docker Machine does not exist: ${MACHINE_NAME}"
-                   echo "HINT: Either specify one with 'adop compose -m <name>', or use 'eval \$(docker-machine env ${MACHINE_NAME})'"
+                   echo "HINT: Either specify one with 'LDOP compose -m <name>', or use 'eval \$(docker-machine env ${MACHINE_NAME})'"
                    exit 1
                 else
                     export TLS="${DOCKER_TLS_VERIFY}"
@@ -74,7 +73,7 @@ prep_env() {
                 fi
             else
                 echo "Docker Machine is not available or the default machine does not exist, defaulting to localhost"
-                echo "HINT: Either specify one with 'adop compose -m <name>', or use 'eval \$(docker-machine env ${MACHINE_NAME})'"
+                echo "HINT: Either specify one with 'LDOP compose -m <name>', or use 'eval \$(docker-machine env ${MACHINE_NAME})'"
                 export TARGET_HOST=$( host $( hostname -f ) | sed -n '/has address/s/.*address //p' )
                 export LOGSTASH_HOST=$TARGET_HOST
             fi
@@ -98,10 +97,10 @@ prep_env() {
 
     # Setting Compose File Lists
     if [ "${LOGS}" = "NO" ]; then
-        export ADOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml"
+        export LDOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml"
         echo "* Logs being send to stdout, specified logging driver not being used..."
     else
-        export ADOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml -f ${CLI_DIR}/etc/logging/${LOGGING_DRIVER}/default.yml"
+        export LDOPFILEOPTS="-f ${CLI_DIR}/docker-compose.yml -f ${CLI_DIR}/etc/volumes/${VOLUME_DRIVER}/default.yml -f ${CLI_DIR}/etc/logging/${LOGGING_DRIVER}/default.yml"
     fi
 
     # Add extension variables
@@ -217,7 +216,7 @@ init() {
        ######### ########   #######  ##
     '
 
-    echo "* Initialising ADOP"
+    echo "* Initialising LDOP"
 
     # Check for need of sudo for certs
     set +e
@@ -254,7 +253,7 @@ init() {
         run_compose pull
     fi
 
-    echo "* Bringing up ADOP..."
+    echo "* Bringing up LDOP..."
     run_compose up -d
 
     # Wait for Jenkins and Gerrit to come up before proceeding
@@ -291,21 +290,21 @@ init() {
     if [ -z "$REG" ]
     then
       echo "Registry volume is new, creating certs"
-      ./adop certbot gen-export-certs registry.localhost registry
+      ./ldop certbot gen-export-certs registry.localhost registry
     fi
 
     # Tell the user something useful
     echo
     echo '##########################################################'
     echo
-    echo "SUCCESS, your new ADOP instance is ready!"
+    echo "SUCCESS, your new LDOP instance is ready!"
     echo
     echo "Run these commands in your shell:"
     echo '  source ./conf/env.provider.sh'
     echo '  source credentials.generate.sh'
     echo '  source env.config.sh'
     echo
-    echo "You can check if any variables are missing with: ./adop compose config  | grep 'WARNING'"
+    echo "You can check if any variables are missing with: ./ldop compose config  | grep 'WARNING'"
     echo
     echo "Navigate to http://${TARGET_HOST} in your browser to use your new DevOps Platform!"
     echo "Login using the following credentials:"
@@ -420,7 +419,7 @@ run_compose() {
     else
         # docker-compose ${ELKFILEOPTS} ${compose_cmd} "$@"
         # echo
-        docker-compose -p ${PROJECT_NAME} ${ADOPFILEOPTS} ${OVERRIDES} ${compose_cmd} "$@"
+        docker-compose ${LDOPFILEOPTS} ${OVERRIDES} ${compose_cmd} "$@"
     fi
 }
 

@@ -41,7 +41,7 @@ END_USAGE
 
 provision_local() {
     if [ -z ${MACHINE_NAME} ]; then
-        MACHINE_NAME=adop
+        MACHINE_NAME=ldop
     fi
 
     # Allow script to continue if error returned by docker-machine command
@@ -52,7 +52,7 @@ provision_local() {
     if [ $? -eq 0 ]; then
         echo "Docker machine '$MACHINE_NAME' already exists"
     else
-	# To run adop stack locally atleast 6144 MB is required.
+	# To run ldop stack locally atleast 6144 MB is required.
         docker-machine create --driver virtualbox --virtualbox-memory 6144 ${MACHINE_NAME}
     fi
 
@@ -220,7 +220,7 @@ case ${MACHINE_TYPE} in
         provision_local
         ;;
     "localhost")
-        ./adop compose ${CLI_COMPOSE_OPTS} init
+        ./ldop compose ${CLI_COMPOSE_OPTS} init
         ;;
     "aws")
         provision_aws
@@ -233,12 +233,12 @@ case ${MACHINE_TYPE} in
         ;;
 esac
 
-# Use the ADOP CLI
+# Use the LDOP CLI
 eval $(docker-machine env ${MACHINE_NAME})
 
-./adop compose -m "${MACHINE_NAME}" ${CLI_COMPOSE_OPTS} init
+./ldop compose -m "${MACHINE_NAME}" ${CLI_COMPOSE_OPTS} init
 
 # Generate and export Self-Signed SSL certificate for Docker Registry, applicable only for AWS type
 if [ ${MACHINE_TYPE} == "aws" ]; then
-    ./adop certbot gen-export-certs "registry.$(docker-machine ip ${MACHINE_NAME}).nip.io" registry
+    ./ldop certbot gen-export-certs "registry.$(docker-machine ip ${MACHINE_NAME}).nip.io" registry
 fi

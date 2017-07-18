@@ -4,7 +4,7 @@ SUB_CMD_NAME="workspace"
 source ${CLI_DIR}/lib/adop_lib.sh
 
 cmd_desc() {
-    echo "For creating a workspace in ADOP jenkins instance."
+    echo "For creating a workspace in LDOP jenkins instance."
 }
 
 cmd_usage() {
@@ -20,7 +20,7 @@ help() {
     printf "    %-20s   %s\n" "create [<options>]" "Create a new workspace in jenkins."
     echo
     echo "Try '${CMD_NAME} ${SUB_CMD_NAME} <subcommand> -h' for details."
-    echo "HINT: Run '${CMD_NAME} ${SUB_CMD_NAME} -w <WORKSPACE_NAME> create' to create a project in an existing workpsace in adop jenkins instance."
+    echo "HINT: Run '${CMD_NAME} ${SUB_CMD_NAME} -w <WORKSPACE_NAME> create' to create a project in an existing workpsace in LDOP jenkins instance."
     echo
 }
 
@@ -125,4 +125,3 @@ case ${SUBCOMMAND_OPT} in
         exit 1
         ;;
 esac
-
