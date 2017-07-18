@@ -1,0 +1,16 @@
+{
+		"core" : [
+				{
+						"type": "Tool Links",
+						"components" : [
+								{
+										"id": "artifactory",
+										"title": "artifactory",
+										"img": "img/artifactory.png",
+										"description": "Artifact Repository",
+										"link": "/artifactory/"
+								}
+						]
+				}
+		]
+}

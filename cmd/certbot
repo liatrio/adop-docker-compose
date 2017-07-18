@@ -16,7 +16,7 @@ help() {
     echo "Available subcommands are:"
     printf "    %-22s   %s\n" "gen-export-certs" "Generate and Export Self-Signed SSL certificates for Nginx SSL support."
     printf "    %-22s   %s\n" "gen-letsencrypt-certs" "Generate SSL certificates issued by Let's Encrypt for Nginx SSL support."
-    printf "    %-22s %s\n" "export-letsencrypt-certs" "Export new SSL certificates issued by Let's Encrypt to the ADOP NGINX Proxy container."
+    printf "    %-22s %s\n" "export-letsencrypt-certs" "Export new SSL certificates issued by Let's Encrypt to the LDOP NGINX Proxy container."
     printf "    %-22s   %s\n" "help" "Prints this help information"
     echo
 }
@@ -53,7 +53,7 @@ export_letsencrypt_help() {
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} export-letsencrypt-certs [<options>]"
     printf "    %-2s   %s\n" "" "Options:"
     printf "    %-3s   %s\n" "" "<DOMAIN_NAME>  : This is the domain name for which we will export certificate files. (Required)"
-    printf "    %-3s   %s\n" "" "<SERVICE_NAME> : Service name will be used for specific NGINX virtual host configuration, you have to upload in ADOP NGINX container virtual host configuration file as /etc/nginx/sites-available/<SERVICE_NAME>.conf."
+    printf "    %-3s   %s\n" "" "<SERVICE_NAME> : Service name will be used for specific NGINX virtual host configuration, you have to upload in LDOP NGINX container virtual host configuration file as /etc/nginx/sites-available/<SERVICE_NAME>.conf."
     printf "    %-3s   %s\n" "" "                 We will also use <SERVICE_NAME> as a prefix for SSL keys for your service, for instance '/etc/nginx/ssl/<SERVICE_NAME>_fullchain.pem' (Optional)"
     printf "    %-3s   %s\n" "" "-h             : Prints this help."
 
@@ -124,8 +124,8 @@ gen_export_certs() {
         fi
     fi
 
-    # Copy private key and self-signed certificate to the ADOP NGINX (proxy) container SSL folder
-    echo "Copying certificates to the ADOP Proxy container..."
+    # Copy private key and self-signed certificate to the LDOP NGINX (proxy) container SSL folder
+    echo "Copying certificates to the LDOP Proxy container..."
     docker cp ${TEMP_CERT_PATH}/${PATH_CERTIFICATE_FILE_NAME} proxy:/etc/nginx/ssl/
     docker cp ${TEMP_CERT_PATH}/${PATH_PRIVATE_KEY_FILE_NAME} proxy:/etc/nginx/ssl/
 
@@ -153,7 +153,7 @@ gen_export_certs() {
     docker restart registry > /dev/null 2>&1
 
     # Reload NGINX configuration
-    echo "Restart ADOP Proxy container with updated certificates..."
+    echo "Restart LDOP Proxy container with updated certificates..."
     docker exec proxy nginx -s reload
 
     # Cleaning up all temporary folders and files
@@ -190,7 +190,7 @@ gen_letsencrypt_certs() {
     export PROXY_CONTAINER_ID=$(docker ps --filter="name=proxy" -q | xargs)
     export PROXY_CONTAINER_RESTART=false
     if [ ! -z ${PROXY_CONTAINER_ID} ]; then
-        read -r -p "We found running Proxy (NGINX) container. To issue new SSL certificate we have to stop & start Proxy container, which will be cause of ADOP short outage. Please, confirm restart of Proxy (NGINX) container? [y/n] " response
+        read -r -p "We found running Proxy (NGINX) container. To issue new SSL certificate we have to stop & start Proxy container, which will be cause of LDOP short outage. Please, confirm restart of Proxy (NGINX) container? [y/n] " response
         case $response in
             [yY][eE][sS]|[yY])
                 PROXY_CONTAINER_RESTART=true
@@ -208,7 +208,7 @@ gen_letsencrypt_certs() {
         -p 80:80 \
         -p 443:443 \
         -v registry_certs:/etc/letsencrypt \
-        accenture/certbot:0.0.1 \
+        liatrio/ldop-certbot:0.0.1 \
         certonly --standalone -d ${DOMAIN_NAME} --text --non-interactive --register-unsafely-without-email --agree-tos
 
     if [ -n "${SERVICE_NAME}" ]; then
