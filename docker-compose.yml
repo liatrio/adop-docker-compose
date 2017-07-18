@@ -44,7 +44,7 @@ services:
   proxy:
     container_name: proxy
     restart: always
-    image: liatrio/ldop-nginx:0.3.0
+    image: liatrio/ldop-nginx:0.4.0
     build: submodules/ldop-nginx
     depends_on:
       - "elasticsearch"
@@ -162,7 +162,7 @@ services:
   sensu-api:
     container_name: sensu-api
     restart: always
-    image: liatrio/ldop-sensu:0.2.0
+    image: liatrio/ldop-sensu:0.3.0
     build: submodules/ldop-sensu
     command: api
     depends_on:
@@ -179,7 +179,7 @@ services:
   sensu-server:
     container_name: sensu-server
     restart: always
-    image: liatrio/ldop-sensu:0.2.0
+    image: liatrio/ldop-sensu:0.3.0
     build: submodules/ldop-sensu
     command: server
     depends_on:
@@ -195,7 +195,7 @@ services:
   sensu-client:
     container_name: sensu-client
     restart: always
-    image: liatrio/ldop-sensu:0.2.0
+    image: liatrio/ldop-sensu:0.3.0
     build: submodules/ldop-sensu
     command: client
     depends_on:
