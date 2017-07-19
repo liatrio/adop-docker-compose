@@ -25,7 +25,7 @@ help() {
 }
 
 
-activate_help() 
+activate_help()
 {
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} activate [<options>]"
@@ -36,7 +36,7 @@ activate_help()
     echo
 }
 
-deactivate_help() 
+deactivate_help()
 {
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} deactivate [<options>]"
@@ -47,7 +47,7 @@ deactivate_help()
     echo
 }
 
-job_help() 
+job_help()
 {
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} job [<options>]"
@@ -63,7 +63,7 @@ job_help()
     echo
 }
 
-basic_help() 
+basic_help()
 {
     echo
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
@@ -197,9 +197,13 @@ test_basic_job () {
   # Sources to obtain the password for Jenkins
   source ${CONF_DIR}/conf/env.provider.sh
   source ${CONF_DIR}/credentials.generate.sh
-  source ${CONF_DIR}/env.config.sh 
+  source ${CONF_DIR}/env.config.sh
   # The URL of the job $1 as hit from within the Jenkins container
-  JOB_URL=localhost:8080/jenkins/job/$1
+  if [ -z "${DOCKER_MACHINE_NAME}" ]; then
+    JOB_URL=localhost:8080/jenkins/job/$1
+  else
+    JOB_URL=$(docker-machine ip $DOCKER_MACHINE_NAME)/jenkins/job/$1
+  fi
   # A value to determine if the job is currently executing
   GREP_RETURN_CODE=0
   # Trigger the job
@@ -207,8 +211,7 @@ test_basic_job () {
   # docker exec jenkins, execute from within jenkins container
   # --data '', execute the curl as a POST
   # /buildWithParameters, build with default parameters
-  docker exec jenkins curl -s --data '' \
-    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/build
+  docker exec jenkins curl -s --data '' jenkins:${PASSWORD_JENKINS}@${JOB_URL}/build
   echo " ...triggered the job '$1' to build..."
   # Disable -e as set in LDOP...
   set +e
@@ -226,7 +229,7 @@ test_basic_job () {
     # (only update the "job currently executing" variable if the curl succeeds)
     if [ $? -eq 0 ]
     then
-      # Grep will return 0 (successfully obtained null result) 
+      # Grep will return 0 (successfully obtained null result)
       # while the build is running
       echo $CURL | grep building\":true > /dev/null
       GREP_RETURN_CODE=$?
@@ -246,9 +249,13 @@ test_parameterized_job () {
   # Sources to obtain the password for Jenkins
   source ${CONF_DIR}/conf/env.provider.sh
   source ${CONF_DIR}/credentials.generate.sh
-  source ${CONF_DIR}/env.config.sh 
+  source ${CONF_DIR}/env.config.sh
   # The URL of the job $1 as hit from within the Jenkins container
-  JOB_URL=localhost:8080/jenkins/job/$1
+  if [ -z "${DOCKER_MACHINE_NAME}" ]; then
+    JOB_URL=localhost:8080/jenkins/job/$1
+  else
+    JOB_URL=$(docker-machine ip $DOCKER_MACHINE_NAME)/jenkins/job/$1
+  fi
   # A value to determine if the job is currently executing
   GREP_RETURN_CODE=0
   # Trigger the parameterized job with default parameters.
@@ -270,18 +277,20 @@ test_parameterized_job () {
     echo " ...waiting 30 seconds for '$1' job to build... "
     sleep 30
     CURL=$(docker exec jenkins curl -s \
-      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json)
+      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json?tree=building)
     # If the curl command did not error...
     # (only update the "job currently executing" variable if the curl succeeds)
     if [ $? -eq 0 ]
     then
-      # Grep will return 0 (successfully obtained null result) 
+      # Grep will return 0 (successfully obtained null result)
       # while the build is running
       echo $CURL | grep building\":true > /dev/null
       GREP_RETURN_CODE=$?
     fi
     # If the curl command errored, sleep and try again
   done
+  CURL=$(docker exec jenkins curl -s \
+    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json?tree=result)
   RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
   echo " ...'$1' job completed! Build Status: $RESULT"
   set -e
@@ -290,7 +299,7 @@ test_parameterized_job () {
 start_with_test_volumes() {
   echo " ...starting LDOP with temporary volumes..."
   if [ "$1" = false ]
-  then  
+  then
     echo " Running /ldop compose init --without-load --without-pull"
     ${CONF_DIR}/ldop compose -v test_local init --without-load --without-pull
   else
@@ -419,9 +428,9 @@ activate() {
         ;;
     esac
   done
-  
+
   pause_and_stop $ACTIVATE_F_FLAG
- 
+
   if [ "$ACTIVATE_F_FLAG" = false ]
   then
     echo ' Warning!'
@@ -510,7 +519,7 @@ basic() {
   done
   # Inform the user that a Basic test has been started
   start_test_text "Basic"
-  
+
   # If LDOP is currently active, stop it.
   pause_and_stop $BASIC_F_FLAG
 
@@ -519,14 +528,14 @@ basic() {
 
   # Run Load_Platform and store the result in $RESULT globally
   test_parameterized_job "Load_Platform"
- 
-  # Save the state of non-running containers to output after shut down 
+
+  # Save the state of non-running containers to output after shut down
   examine_statuses
 
   MEM=$(docker stats --no-stream --format "{{.MemPerc}}" | tr -d '\%' | \
     awk '{sum+=$1} END {print sum}')
 
-  
+
   # Inform the user that the Basic test has completed
   end_test_text "Basic"
 
@@ -538,7 +547,7 @@ basic() {
 
   echo " Load_Platform Build Result: $RESULT"
   echo " Docker Memory Usage: $MEM%"
-  
+
   # Print the non-running containers prior to shut down
   print_statuses
 
