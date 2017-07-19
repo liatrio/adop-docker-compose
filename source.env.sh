@@ -29,3 +29,5 @@ export PROJECT_NAME="ldop"
 
 #provider specific environment files
 source ${CLI_DIR}/conf/env.provider.sh
+
+docker network create --attachable -d overlay ${CUSTOM_NETWORK_NAME}
