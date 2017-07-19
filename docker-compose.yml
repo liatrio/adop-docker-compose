@@ -538,11 +538,11 @@ services:
       REMOTE_HOST: "http://selenium-node-firefox:5555"
       HUB_PORT_4444_TCP_ADDR: "selenium-hub"
       HUB_PORT_4444_TCP_PORT: "4444"
-      logging:
-        driver: "syslog"
-        options:
-          syslog-address: "udp://${LOGSTASH_HOST}:25826"
-          tag: "selenium-node-firefox"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "selenium-node-firefox"
 
   ldap-ltb:
     container_name: ldap-ltb
