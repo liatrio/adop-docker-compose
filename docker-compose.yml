@@ -100,6 +100,10 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "proxy"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
   ldap:
     container_name: ldap
@@ -225,6 +229,10 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-uchiwa"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-api:
     container_name: sensu-api
@@ -249,6 +257,10 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-api"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-server:
     container_name: sensu-server
@@ -272,6 +284,10 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-server"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-client:
     container_name: sensu-client
@@ -297,6 +313,10 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-client"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-rabbitmq:
     container_name: sensu-rabbitmq
@@ -318,6 +338,10 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-rabbitmq"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-redis:
     container_name: sensu-redis
@@ -336,6 +360,10 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-redis"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
   sonar-mysql:
     container_name: sonar-mysql
