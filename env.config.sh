@@ -63,5 +63,5 @@ export PROTO="http"
 export REGISTRY_CERT_VOL="registry_certs"
 
 # Extension services (space-delimeted string)
-export EXTENSIONS="artifactory"
+export EXTENSIONS="nexus"
 

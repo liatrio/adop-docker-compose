@@ -3,6 +3,11 @@ version: '3'
 volumes:
   nexus_sonatype_work:
 
+networks:
+  default:
+    external:
+      name: ${CUSTOM_NETWORK_NAME}
+
 services:
   nexus:
     container_name: nexus
