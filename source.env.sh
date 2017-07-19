@@ -25,7 +25,7 @@ export OVERRIDES=""
 export TOTAL_OVERRIDES=""
 export PULL="YES"
 export MACHINE_NAME=""
-export PROJECT_NAME="ldopdockercompose"
+export PROJECT_NAME="ldop"
 
 #provider specific environment files
 source ${CLI_DIR}/conf/env.provider.sh
