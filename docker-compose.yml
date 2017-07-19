@@ -8,6 +8,33 @@ networks:
     external:
       name: ${CUSTOM_NETWORK_NAME}
 
+volumes:
+  elasticsearch_data:
+  nginx_config:
+  nginx_releasenote:
+  ldap_db:
+  ldap_static:
+  gerrit_mysql_data:
+  git_repos:
+  gerrit_review_site:
+  sensu_api_conf:
+  sensu_server_conf:
+  sensu_client_conf:
+  sensu_rabbitmq_data:
+  sensu_redis_data:
+  sonar_mysql_data:
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:
+  jenkins_slave_home:
+  jenkins_home:
+  jenkins_home:
+  registry_certs:
+    external: true
+  registry_data:
+
+
+
 services:
   elasticsearch:
     container_name: elasticsearch
@@ -16,6 +43,8 @@ services:
     command: elasticsearch -Des.network.host=0.0.0.0
     ports:
       - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
 
   logstash:
     container_name: logstash
@@ -62,6 +91,14 @@ services:
       - "LDAP_GROUP_ATTRIBUTE=member"
       - "LDAP_USER_ID_ATTRIBUTE=cn"
       - "LDAP_USER_OBJECT_CLASS=inetOrgPerson"
+    volumes:
+      - nginx_config:/etc/nginx
+      - nginx_releasenote:/usr/share/nginx/html
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "proxy"
 
   ldap:
     container_name: ldap
@@ -84,6 +121,14 @@ services:
       SLAPD_PASSWORD: ${LDAP_PWD}
       SLAPD_DOMAIN: ${LDAP_DOMAIN}
       SLAPD_FULL_DOMAIN: ${LDAP_FULL_DOMAIN}
+    volumes:
+      - ldap_db:/var/lib/ldap
+      - ldap_static:/etc/ldap
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "ldap"
 
   gerrit-mysql:
     container_name: gerrit-mysql
@@ -100,6 +145,13 @@ services:
       MYSQL_USER: ${GERRIT_MYSQL_USER}
       MYSQL_PASSWORD: ${GERRIT_MYSQL_PASSWORD}
       MYSQL_DATABASE: ${GERRIT_MYSQL_DATABASE}
+    volumes:
+      - gerrit_mysql_data:/var/lib/mysql
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "gerrit-mysql"
 
   gerrit:
     container_name: gerrit
@@ -144,6 +196,15 @@ services:
       - "USER_NAME=${GERRIT_USER_NAME}"
       - "USER_EMAIL=${GERRIT_USER_EMAIL}"
       - "DOWNLOAD_SCHEME=http"
+    volumes:
+      - git_repos:/var/git/repos
+      - gerrit_review_site:/var/gerrit/review_site
+    user: root
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "gerrit"
 
   sensu-uchiwa:
     container_name: sensu-uchiwa
@@ -158,6 +219,11 @@ services:
       SENSU_DC_NAME: Sensu
     expose:
       - "3000"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-uchiwa"
 
   sensu-api:
     container_name: sensu-api
@@ -175,6 +241,13 @@ services:
       TRANSPORT_NAME: rabbitmq
       RABBITMQ_HOST: sensu-rabbitmq
       REDIS_HOST: sensu-redis
+    volumes:
+      - sensu_api_conf:/etc/sensu/conf.d
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-api"
 
   sensu-server:
     container_name: sensu-server
@@ -191,6 +264,13 @@ services:
       RABBITMQ_HOST: sensu-rabbitmq
       REDIS_HOST: sensu-redis
       TRANSPORT_NAME: rabbitmq
+    volumes:
+      - sensu_server_conf:/etc/sensu/conf.d
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-server"
 
   sensu-client:
     container_name: sensu-client
@@ -209,6 +289,13 @@ services:
       RABBITMQ_HOST: sensu-rabbitmq
       JENKINS_PREFIX: jenkins
       CLIENT_SUBSCRIPTIONS: "${SENSU_CLIENT_SUBSCRIPTIONS}"
+    volumes:
+      - sensu_client_conf:/etc/sensu/conf.d
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-client"
 
   sensu-rabbitmq:
     container_name: sensu-rabbitmq
@@ -223,6 +310,13 @@ services:
       - "5671"
       - "15672"
       - "15671"
+    volumes:
+      - sensu_rabbitmq_data:/var/lib/rabbitmq
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-rabbitmq"
 
   sensu-redis:
     container_name: sensu-redis
@@ -234,6 +328,13 @@ services:
       - "kibana"
     expose:
       - "6379"
+    volumes:
+      - sensu_redis_data:/data
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-redis"
 
   sonar-mysql:
     container_name: sonar-mysql
@@ -250,6 +351,13 @@ services:
       MYSQL_USER: ${SONAR_MYSQL_USER}
       MYSQL_PASSWORD: ${SONAR_MYSQL_PASSWORD}
       MYSQL_DATABASE: ${SONAR_MYSQL_DATABASE}
+    volumes:
+      - sonar_mysql_data:/var/lib/mysql
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sonar-mysql"
 
   sonar:
     container_name: sonar
@@ -277,6 +385,15 @@ services:
       - "LDAP_GROUP_REQUEST=(&(objectClass=groupOfUniqueNames)(uniqueMember={dn}))"
       - "LDAP_GROUP_ID_ATTRIBUTE=cn"
       - "SONARQUBE_JDBC_URL=jdbc:mysql://sonar-mysql:3306/${SONAR_MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&rewriteBatchedStatements=true"
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sonar"
 
   jenkins:
     container_name: jenkins
@@ -339,6 +456,14 @@ services:
       DOCKER_NETWORK_NAME: ${CUSTOM_NETWORK_NAME}
       CARTRIDGE_SOURCES: ${CARTRIDGE_SOURCES}
       LDOP_NETWORK_NAME: ${CUSTOM_NETWORK_NAME}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "jenkins"
 
   jenkins-slave:
     container_name: jenkins-slave
@@ -356,6 +481,14 @@ services:
       SLAVE_EXECUTORS: ${SLAVE_EXECUTORS}
       INITIAL_ADMIN_USER: ${INITIAL_ADMIN_USER}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD_PLAIN}
+    volumes:
+      - jenkins_slave_home:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "jenkins-slave"
 
   selenium-hub:
     container_name: selenium-hub
@@ -367,6 +500,11 @@ services:
       - "kibana"
     expose:
       - "4444"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "selenium-hub"
 
   selenium-node-chrome:
     container_name: selenium-node-chrome
@@ -381,6 +519,11 @@ services:
       REMOTE_HOST: "http://selenium-node-chrome:5555"
       HUB_PORT_4444_TCP_ADDR: "selenium-hub"
       HUB_PORT_4444_TCP_PORT: "4444"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "selenium-node-chrome"
 
   selenium-node-firefox:
     container_name: selenium-node-firefox
@@ -395,6 +538,11 @@ services:
       REMOTE_HOST: "http://selenium-node-firefox:5555"
       HUB_PORT_4444_TCP_ADDR: "selenium-hub"
       HUB_PORT_4444_TCP_PORT: "4444"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "selenium-node-firefox"
 
   ldap-ltb:
     container_name: ldap-ltb
@@ -445,3 +593,11 @@ services:
       REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
       REGISTRY_HTTP_TLS_CERTIFICATE: /certs/registry/fullchain.pem
       REGISTRY_HTTP_TLS_KEY: /certs/registry/privkey.pem
+    volumes:
+      - registry_certs:/certs
+      - registry_data:/data
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "registry"
