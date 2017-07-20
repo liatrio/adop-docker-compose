@@ -85,9 +85,9 @@ setupDataDirs () {
 
 # Add bootstrap configuration with substituted environment variables
 addBootstrapConfig() {
-	if [ -f /artifactory.config.import.xml ] ; then
-		envsubst < artifactory.config.import.xml > /opt/jfrog/artifactory/etc/artifactory.config.import.xml
-	fi
+  for f in $(ls /*.import.xml); do
+		envsubst < /$f > /opt/jfrog/artifactory/etc/$f
+  done
 }
 
 # Create the Artifactory user (support passing name and id as parameters)
