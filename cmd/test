@@ -301,11 +301,11 @@ start_with_test_volumes() {
   if [ "$1" = false ]
   then
     echo " Running /ldop compose init --without-load --without-pull"
-    ${CONF_DIR}/ldop compose -v test_local init --without-load --without-pull
+    ${CONF_DIR}/ldop compose -v test_local init --without-pull
   else
     echo "...-w flag specified; omitting without-pull..."
     echo " Running /ldop compose init --without-load"
-    ${CONF_DIR}/ldop compose -v test_local init --without-load
+    ${CONF_DIR}/ldop compose -v test_local init
   fi
   echo '##########################################################'
 }
