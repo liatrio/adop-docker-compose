@@ -1,10 +1,9 @@
 #!/bin/bash -e
 
-# ./ldop.sh
+# ./source.env.sh
 
 # The sed expression here replaces all backslashes by forward slashes.
 # This helps our Windows users, while not bothering our Unix users.
-#export CLI_DIR=$(dirname "$(echo "$1" | sed -e 's,\\,/,g')")
 export CLI_DIR=$(dirname "$(echo "$1" | sed -e 's,\\,/,g')")
 export CONF_DIR="${CLI_DIR}"
 export CONF_PROVIDER_DIR="${CLI_DIR}/conf/provider"
@@ -28,6 +27,7 @@ export MACHINE_NAME=""
 export PROJECT_NAME="ldop"
 
 #provider specific environment files
+source ${CLI_DIR}/env.config.sh
 source ${CLI_DIR}/conf/env.provider.sh
 
 docker network create --attachable -d overlay ${CUSTOM_NETWORK_NAME}
