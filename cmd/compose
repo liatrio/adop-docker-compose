@@ -109,7 +109,7 @@ prep_env() {
       ext_path="${CLI_DIR}/extensions/$ext/docker-compose.yml"
       if ! [ -f "${ext_path}" ]; then
         echo "Extension not found: $ext. Exiting."
-        exit 1 
+        exit 1
       else
         export LDOPFILEOPTS="${LDOPFILEOPTS} -f ${ext_path}"
       fi
@@ -130,7 +130,7 @@ load_extensions () {
             echo "* Integrating extension: $ext"
 
             # Add proxy pass integration
-            if [ -d "${integrations_dir}/proxy" ]; then 
+            if [ -d "${integrations_dir}/proxy" ]; then
                 echo "  * Adding proxy integration."
                 docker cp ${integrations_dir}/proxy/sites-enabled/service-extension/. proxy:/etc/nginx/sites-enabled/service-extension
             fi
@@ -188,10 +188,6 @@ init() {
         case "$1" in
             --without-pull)
                 export PULL="NO"
-                shift
-                ;;
-            --without-load)
-                export LOAD="NO"
                 shift
                 ;;
             --with-stdout)
@@ -261,18 +257,10 @@ init() {
     TOOL_SLEEP_TIME=30
     until [[ $(docker exec jenkins curl -I -s jenkins:${PASSWORD_JENKINS}@localhost:8080/jenkins/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep ${TOOL_SLEEP_TIME} Jenkins; done
     until [[ $(docker exec gerrit curl -I -s gerrit:${PASSWORD_GERRIT}@localhost:8080/gerrit/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep ${TOOL_SLEEP_TIME} Gerrit; done
-    
+
     # Load configured extensions
     if [ ! -z "${EXTENSIONS}" ]; then
       load_extensions
-    fi
-
-    # Trigger Load_Platform in Jenkins
-    if [ "${LOAD}" = "NO" ]; then
-        echo "* Skipping Loading the Platform"
-    else
-        echo "* Loading the Platform"
-        docker exec jenkins curl -s -X POST jenkins:${PASSWORD_JENKINS}@localhost:8080/jenkins/job/Load_Platform/buildWithParameters --data token=gAsuE35s
     fi
 
     # Generate and copy the certificates to jenkins slave if TLS is enabled
