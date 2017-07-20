@@ -630,3 +630,7 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "registry"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager

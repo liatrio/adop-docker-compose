@@ -1,11 +1,11 @@
 #!/bin/bash -e
 
 # ./ldop.sh
-CMD_NAME=`basename "$0"`
 
 # The sed expression here replaces all backslashes by forward slashes.
 # This helps our Windows users, while not bothering our Unix users.
-export CLI_DIR=$(dirname "$(echo "$0" | sed -e 's,\\,/,g')")
+#export CLI_DIR=$(dirname "$(echo "$1" | sed -e 's,\\,/,g')")
+export CLI_DIR=$(dirname "$(echo "$1" | sed -e 's,\\,/,g')")
 export CONF_DIR="${CLI_DIR}"
 export CONF_PROVIDER_DIR="${CLI_DIR}/conf/provider"
 CLI_CMD_DIR="${CLI_DIR}/cmd"
