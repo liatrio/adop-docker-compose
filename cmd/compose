@@ -407,7 +407,7 @@ run_compose() {
     else
         # docker-compose ${ELKFILEOPTS} ${compose_cmd} "$@"
         # echo
-        docker-compose ${LDOPFILEOPTS} ${OVERRIDES} ${compose_cmd} "$@"
+        docker-compose -p ${PROJECT_NAME} ${LDOPFILEOPTS} ${OVERRIDES} ${compose_cmd} "$@"
     fi
 }
 
