@@ -9,6 +9,8 @@ pretty_sleep() {
     echo "$tool was unavailable, so slept for: ${1:-60} secs"
 }
 
+docker stack deploy -c extensions/nexus/docker-compose.yml ldop
+
 # Clear existing extension nginx configuration
 docker run --rm -v "${PROJECT_NAME}_nginx_config:/nginx" busybox rm -f /nginx/sites-enabled/service-extension/*.conf
 
@@ -36,9 +38,19 @@ done
 
 # Restart nginx, sensu-server
 # run_compose restart proxy sensu-server
-docker stack deploy -c extensions/nexus/docker-compose.yml ldop
 docker service update --force ldop_proxy
 docker service update --force ldop_sensu-server
+
+pretty_sleep 5 Nginx
+
+# Wait for Nginx to come up before proceeding
+echo "* Waiting for Nginx to become available"
+until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
+
+echo "* Waiting for Nexus to become available"
+until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/nexus/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nexus; done
+
+docker service update --force ldop_proxy
 
 pretty_sleep 5 Nginx
 
