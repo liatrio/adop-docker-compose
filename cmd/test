@@ -301,18 +301,18 @@ start_with_test_volumes() {
   if [ "$1" = false ]
   then
     echo " Running /ldop compose init --without-pull"
-    ${CONF_DIR}/ldop compose -v test_local init --without-pull
+    ${CONF_DIR}/ldop compose -p testldopdockercompose init --without-pull
   else
     echo "...-w flag specified; omitting without-pull..."
     echo " Running /ldop compose init"
-    ${CONF_DIR}/ldop compose -v test_local init
+    ${CONF_DIR}/ldop compose -p testldopdockercompose init
   fi
   echo '##########################################################'
 }
 
 stop_and_remove_test_volumes() {
   echo " ...stopping the test and removing volumes..."
-  ${CONF_DIR}/ldop compose -v test_local down --volumes
+  ${CONF_DIR}/ldop compose -p testldopdockercompose down --volumes
   echo '##########################################################'
 }
 
