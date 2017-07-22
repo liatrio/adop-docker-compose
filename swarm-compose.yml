@@ -30,6 +30,7 @@ volumes:
   jenkins_slave_home:
   jenkins_home:
   jenkins_home:
+  jenkins_usr:
   registry_certs:
     external: true
   registry_data:
@@ -427,8 +428,8 @@ services:
   jenkins:
     container_name: jenkins
     restart: always
-    image: liatrio/ldop-jenkins:2.1.0
-    build: submodules/ldop-jenkins
+    image: swarm-jenkins:0.0.2
+    #build: submodules/ldop-jenkins
     depends_on:
       - "elasticsearch"
       - "logstash"
@@ -488,6 +489,7 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins_usr:/etc
     logging:
       driver: "syslog"
       options:
