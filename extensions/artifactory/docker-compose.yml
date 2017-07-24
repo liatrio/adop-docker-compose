@@ -3,10 +3,16 @@ version: '3'
 volumes:
   artifactory_data:
 
+networks:
+  default:
+    external:
+      name: ${CUSTOM_NETWORK_NAME}
+
 services:
   artifactory:
     container_name: artifactory
     restart: always
+    image: liatrio/ldop-artifactory:0.0.1
     build: extensions/artifactory
     expose:
       - "8081"
