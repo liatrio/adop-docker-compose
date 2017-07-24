@@ -11,79 +11,56 @@ pretty_sleep() {
 
 source swarm.env.sh
 
-docker stack deploy -c swarm-compose.yml ldop
+export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check:/sensu" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
 
-# Wait for Nginx to come up before proceeding
-echo "* Waiting for Nginx to become available"
-until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
-
-docker stack deploy -c extensions/nexus/docker-compose.yml ldop
-
-# Clear existing extension nginx configuration
-docker run --rm -v "${PROJECT_NAME}_nginx_config:/nginx" busybox rm -f /nginx/sites-enabled/service-extension/*.conf
-
-# Update nginx with extension configuration
 for ext in ${EXTENSIONS}; do
+
 integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
-echo ${integrations_dir}
+proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
+
 if [ -d "${integrations_dir}" ]; then
 		echo "* Integrating extension: $ext"
 
 		# Add proxy pass integration
 		if [ -d "${integrations_dir}/proxy" ]; then 
 				echo "  * Adding proxy integration."
-				docker cp ${integrations_dir}/proxy/sites-enabled/service-extension/. $(docker ps | grep proxy | awk '{print $1}'):/etc/nginx/sites-enabled/service-extension
+				docker cp ${integrations_dir}/proxy/sites-enabled/service-extension/. ${CONTAINER_ID}:/nginx/sites-enabled/service-extension
 		fi
 
 		# Add Sensu checks
 		if [ -d "${integrations_dir}/sensu/check.d" ]; then
 				echo "  * Adding sensu integration."
-				docker cp ${integrations_dir}/sensu/check.d/. $(docker ps | grep sensu-server | awk '{print $1}'):/etc/sensu/check.d/
+				docker cp ${integrations_dir}/sensu/check.d/. ${CONTAINER_ID}:/sensu/
 		fi
 
+		docker stack deploy -c ${CLI_DIR}/extensions/$ext/docker-compose.yml ${STACK_NAME}
 fi
 done
 
-# Restart nginx, sensu-server
-# run_compose restart proxy sensu-server
-docker service update --force ldop_proxy
-docker service update --force ldop_sensu-server
-
-pretty_sleep 5 Nginx
+docker stack deploy -c swarm-compose.yml ${STACK_NAME}
 
 # Wait for Nginx to come up before proceeding
 echo "* Waiting for Nginx to become available"
 until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
 
-echo "* Waiting for Nexus to become available"
-until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/nexus/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nexus; done
-
-docker service update --force ldop_proxy
-
-pretty_sleep 5 Nginx
-
-# Wait for Nginx to come up before proceeding
-echo "* Waiting for Nginx to become available"
-until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 Nginx; done
-
-# Load extension dashboard resources
 for ext in ${EXTENSIONS}; do
-				integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
-				proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
 
-				if [ -d "${integrations_dir}" ]; then
-								echo "* Integrating dashboard resources for extension: $ext"
+integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
+proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
 
-								# Add dashboard image resources
-								if [ -d "${integrations_dir}/proxy/release-note/img" ]; then
-												echo "  * Adding dashboard image."
-												docker cp ${integrations_dir}/proxy/release-note/img/. $(docker ps | grep proxy | awk '{print $1}'):/usr/share/nginx/html/img
-								fi
+if [ -d "${integrations_dir}" ]; then
+		# Add dashboard image resources
+		if [ -d "${integrations_dir}/proxy/release-note/img" ]; then
+				echo "  * Adding dashboard image."
+				docker cp ${integrations_dir}/proxy/release-note/img/. ${CONTAINER_ID}:/nginx_release/img
+		fi
 
-								# Add dashboard ui integrations
-								if [ -f "${integrations_dir}/proxy/release-note/plugins.json" ]; then
-												echo "  * Adding dashboard ui configuration."
-												docker run --rm -v "${PROJECT_NAME}_nginx_releasenote:/release-note" -v "$(pwd)/extensions/$ext/integrations/proxy/release-note/plugins.json:/new-plugins.json" endeveit/docker-jq /bin/sh -c "jq -s '.[0].core[0].components = (.[0].core[0].components+.[1].core[0].components|unique_by(.id))|.[0]' /release-note/plugins.json /new-plugins.json >/release-note/tmp.json && mv /release-note/tmp.json /release-note/plugins.json"
-				fi
+		# Add dashboard ui integrations
+		if [ -f "${integrations_dir}/proxy/release-note/plugins.json" ]; then
+				echo "  * Adding dashboard ui configuration."
+				docker run --rm -v "${PROJECT_NAME}_nginx_releasenote:/release-note" -v "$(pwd)/extensions/$ext/integrations/proxy/release-note/plugins.json:/new-plugins.json" endeveit/docker-jq /bin/sh -c "jq -s '.[0].core[0].components = (.[0].core[0].components+.[1].core[0].components|unique_by(.id))|.[0]' /release-note/plugins.json /new-plugins.json >/release-note/tmp.json && mv /release-note/tmp.json /release-note/plugins.json"
+		fi
 fi
 done
+
+docker rm ${CONTAINER_ID}

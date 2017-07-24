@@ -2,6 +2,8 @@
 
 # ./source.env.sh
 
+export STACK_NAME=ldop
+
 # The sed expression here replaces all backslashes by forward slashes.
 # This helps our Windows users, while not bothering our Unix users.
 export CLI_DIR=$(dirname "$(echo "$1" | sed -e 's,\\,/,g')")

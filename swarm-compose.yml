@@ -20,6 +20,7 @@ volumes:
   gerrit_review_site:
   sensu_api_conf:
   sensu_server_conf:
+  sensu_server_check:
   sensu_client_conf:
   sensu_rabbitmq_data:
   sensu_redis_data:
@@ -39,8 +40,6 @@ volumes:
 
 services:
   elasticsearch:
-    container_name: elasticsearch
-    restart: always
     image: elasticsearch:2.1.1
     command: elasticsearch -Des.network.host=0.0.0.0
     ports:
@@ -49,10 +48,7 @@ services:
       - elasticsearch_data:/usr/share/elasticsearch/data
 
   logstash:
-    container_name: logstash
-    restart: always
     image: liatrio/ldop-logstash:0.1.0
-    build: submodules/ldop-logstash
     environment:
       - "constraint:tier==public"
       - LS_HEAP_SIZE=1024m
@@ -62,8 +58,6 @@ services:
       - "5000:5000/tcp"
 
   kibana:
-    container_name: kibana
-    restart: always
     image: kibana:4.3.1
     environment:
     command: kibana
@@ -73,10 +67,7 @@ services:
       - "5601:5601"
 
   proxy:
-    container_name: proxy
-    restart: always
     image: liatrio/ldop-nginx:0.4.0
-    build: submodules/ldop-nginx
     depends_on:
       - "elasticsearch"
       - "logstash"
@@ -107,16 +98,11 @@ services:
           - node.role == manager
 
   ldap:
-    container_name: ldap
-    restart: always
     image: liatrio/ldop-ldap:0.1.3
-    build: submodules/ldop-ldap
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "389"
     ports:
       - "389:389/tcp"
     environment:
@@ -137,15 +123,11 @@ services:
         tag: "ldap"
 
   gerrit-mysql:
-    container_name: gerrit-mysql
-    restart: always
     image: mysql:5.6.25
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${PASSWORD_SQL}
       MYSQL_USER: ${GERRIT_MYSQL_USER}
@@ -160,18 +142,11 @@ services:
         tag: "gerrit-mysql"
 
   gerrit:
-    container_name: gerrit
-    restart: always
     image: liatrio/ldop-gerrit:0.1.3
-    build: submodules/ldop-gerrit
-    privileged: true
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "8080"
-      - "29418"
     environment:
       - "dependency:container==gerrit-mysql"
       - "REPO_PATH=/var/git/repos"
@@ -213,8 +188,6 @@ services:
         tag: "gerrit"
 
   sensu-uchiwa:
-    container_name: sensu-uchiwa
-    restart: always
     image: sstarcher/uchiwa:0.15.0
     depends_on:
       - "elasticsearch"
@@ -223,8 +196,6 @@ services:
     environment:
       SENSU_HOSTNAME: sensu-api
       SENSU_DC_NAME: Sensu
-    expose:
-      - "3000"
     logging:
       driver: "syslog"
       options:
@@ -236,17 +207,12 @@ services:
           - node.role == manager
 
   sensu-api:
-    container_name: sensu-api
-    restart: always
     image: liatrio/ldop-sensu:0.3.0
-    build: submodules/ldop-sensu
     command: api
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "4567"
     environment:
       TRANSPORT_NAME: rabbitmq
       RABBITMQ_HOST: sensu-rabbitmq
@@ -264,10 +230,7 @@ services:
           - node.role == manager
 
   sensu-server:
-    container_name: sensu-server
-    restart: always
     image: liatrio/ldop-sensu:0.3.0
-    build: submodules/ldop-sensu
     command: server
     depends_on:
       - "elasticsearch"
@@ -280,6 +243,7 @@ services:
       TRANSPORT_NAME: rabbitmq
     volumes:
       - sensu_server_conf:/etc/sensu/conf.d
+      - sensu_server_check:/etc/sensu/check.d
     logging:
       driver: "syslog"
       options:
@@ -291,10 +255,7 @@ services:
           - node.role == manager
 
   sensu-client:
-    container_name: sensu-client
-    restart: always
     image: liatrio/ldop-sensu:0.3.0
-    build: submodules/ldop-sensu
     command: client
     depends_on:
       - "elasticsearch"
@@ -320,18 +281,11 @@ services:
           - node.role == manager
 
   sensu-rabbitmq:
-    container_name: sensu-rabbitmq
-    restart: always
     image: rabbitmq:3.5.7-management
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "5672"
-      - "5671"
-      - "15672"
-      - "15671"
     volumes:
       - sensu_rabbitmq_data:/var/lib/rabbitmq
     logging:
@@ -345,15 +299,11 @@ services:
           - node.role == manager
 
   sensu-redis:
-    container_name: sensu-redis
-    restart: always
     image: redis:3.0.7
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "6379"
     volumes:
       - sensu_redis_data:/data
     logging:
@@ -367,15 +317,11 @@ services:
           - node.role == manager
 
   sonar-mysql:
-    container_name: sonar-mysql
-    restart: always
     image: mysql:5.6.25
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${PASSWORD_SQL}
       MYSQL_USER: ${SONAR_MYSQL_USER}
@@ -390,16 +336,11 @@ services:
         tag: "sonar-mysql"
 
   sonar:
-    container_name: sonar
-    restart: always
     image: liatrio/ldop-sonar:0.2.0
-    build: submodules/ldop-sonar
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "9000"
     environment:
       - "dependency:container==sonar-mysql"
       - "SONARQUBE_JDBC_USERNAME=${SONAR_MYSQL_USER}"
@@ -426,20 +367,13 @@ services:
         tag: "sonar"
 
   jenkins:
-    container_name: jenkins
-    restart: always
-    image: swarm-jenkins:0.0.2
-    #build: submodules/ldop-jenkins
+    image: liatrio/ldop-jenkins:2.1.5
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
     ports:
       - "50000:50000/tcp"
-    expose:
-      - "8080"
-      - "50000"
-    privileged: true
     environment:
       JENKINS_OPTS: "--prefix=/jenkins"
       ROOT_URL: "${PROTO}://${TARGET_HOST}/jenkins/"
@@ -497,15 +431,11 @@ services:
         tag: "jenkins"
 
   jenkins-slave:
-    container_name: jenkins-slave
-    restart: always
     image: liatrio/ldop-jenkins-slave:0.1.4
-    build: submodules/ldop-jenkins-slave
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    privileged: true
     environment:
       SLAVE_LABELS: "aws ldap java8 docker"
       SWARM_PASSWORD: ${PASSWORD_JENKINS}
@@ -522,15 +452,11 @@ services:
         tag: "jenkins-slave"
 
   selenium-hub:
-    container_name: selenium-hub
-    restart: always
     image: selenium/hub:2.53.0
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "4444"
     logging:
       driver: "syslog"
       options:
@@ -538,8 +464,6 @@ services:
         tag: "selenium-hub"
 
   selenium-node-chrome:
-    container_name: selenium-node-chrome
-    restart: always
     image: selenium/node-chrome:2.53.0
     depends_on:
       - "elasticsearch"
@@ -557,8 +481,6 @@ services:
         tag: "selenium-node-chrome"
 
   selenium-node-firefox:
-    container_name: selenium-node-firefox
-    restart: always
     image: selenium/node-firefox:2.53.0
     depends_on:
       - "elasticsearch"
@@ -576,16 +498,11 @@ services:
         tag: "selenium-node-firefox"
 
   ldap-ltb:
-    container_name: ldap-ltb
-    restart: always
     image: liatrio/ldop-ldap-ltb:0.1.0
-    build: submodules/ldop-ldap-ltb
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "80"
     environment:
       LDAP_LTB_URL: "ldap://${LDAP_SERVER}"
       LDAP_LTB_DN: "${LDAP_ADMIN},${LDAP_FULL_DOMAIN}"
@@ -593,16 +510,11 @@ services:
       LDAP_LTB_BS: "${LDAP_FULL_DOMAIN}"
 
   ldap-phpadmin:
-    container_name: ldap-phpadmin
-    restart: always
     image: liatrio/ldop-ldap-phpadmin:0.1.0
-    build: submodules/ldop-ldap-phpadmin
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "80"
     environment:
       LDAP_SERVER_NAME: "LDAP"
       LDAP_SERVER_HOST: "ldap"
@@ -611,15 +523,11 @@ services:
       LDAP_SERVER_BASE_DN: "${LDAP_FULL_DOMAIN}"
 
   registry:
-    container_name: registry
-    restart: always
     image: registry:2.5.1
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "5000"
     environment:
       REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
       REGISTRY_HTTP_TLS_CERTIFICATE: /certs/registry/fullchain.pem
