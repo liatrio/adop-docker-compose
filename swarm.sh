@@ -9,9 +9,9 @@ pretty_sleep() {
     echo "$tool was unavailable, so slept for: ${1:-60} secs"
 }
 
-#source swarm.env.sh
+source swarm.env.sh
 
-#docker stack deploy -c swarm-compose.yml ldop
+docker stack deploy -c swarm-compose.yml ldop
 
 # Wait for Nginx to come up before proceeding
 echo "* Waiting for Nginx to become available"
