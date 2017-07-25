@@ -1,29 +1,21 @@
 #!/bin/bash -e
 
-SUB_CMD_NAME="compose"
+SUB_CMD_NAME="swarm"
 
 cmd_usage() {
-    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} [<options>] <subcommand>"
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} [<options>]"
     echo "Options:"
-    printf "    %-12s   %s\n" "-m <name>" "The name of the Docker Machine to target"
-    printf "    %-12s   %s\n" "-f <path>" "Additional override file for Docker Compose, can be specified more than once"
-    printf "    %-12s   %s\n" "-F <path>" "File to use for Docker Compose (in place of default), can be specified more than once"
-    printf "    %-12s   %s\n" "-l <driver>" "The logging driver to use"
-    printf "    %-12s   %s\n" "-v <driver>" "The volume driver to use"
-    printf "    %-12s   %s\n" "-n <name>" "The custom network to create (if not present) and use"
-    printf "    %-12s   %s\n" "-i <ip>" "The public IP that the proxy will be accessed from (only required when not using Docker Machine)"
+    printf "    %-12s   %s\n" "-a <option>" "Example description."
 }
 
 help() {
     cmd_usage
     echo
     echo "Available subcommands are:"
-    printf "    %-22s   %s\n" "init" "Initialises LDOP"
-    printf "    %-22s   %s\n" "init <--without-pull>" "Initialises LDOP without pulling images"
-    printf "    %-22s   %s\n" "init <--with-stdout>" "Initialises LDOP with logs being sent to stdout as opposed to specified logging driver"
-    printf "    %-22s   %s\n" "up" "docker-compose up for LDOP"
-    printf "    %-22s   %s\n" "gen-certs <path>" "Generate client certificates for TLS-enabled Machine and copy to <path> in Jenkins Slave"
-    printf "    %-22s   %s\n" "<command>" "Runs 'docker-compose <command>' for LDOP, where <command> is not listed above"
+    printf "    %-22s   %s\n" "init" "Launches the LDOP platform onto a Docker swarm."
+    printf "    %-22s   %s\n" "down" "Brings down the LDOP services running in the swarm."
+    printf "    %-22s   %s\n" "down --volumes" "Brings down the LDOP services running in the swarm and destroys associated volumes."
+    printf "    %-22s   %s\n" "down --networks" "Brings down the LDOP services running in the swarm and removes associated networks."
     printf "    %-22s   %s\n" "help" "Prints this help information"
     echo
 }
@@ -99,8 +91,10 @@ init() {
 
   set -e
 
+	# Launches a busybox to mount volumes to simplify the process of adding extensions. The mounted volumes are forced to exist, and the needed directories are created. This action is idempotent.
 	export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check:/sensu" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
 
+	# Iterate across all of our listed extensions and adds the required information to Nginx and Sensu. Launches the extension into the swarm.
 	for ext in ${EXTENSIONS}; do
           integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
           proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
@@ -124,6 +118,7 @@ init() {
           fi
 	done
 
+	# Launches LDOP into the swarm.
 	docker stack deploy -c swarm-compose.yml ldop
 
 	# Wait for Nginx to come up before proceeding
@@ -150,6 +145,7 @@ init() {
           fi
 	done
 
+	# Removes the busybox container.
 	docker rm ${CONTAINER_ID}
 }
 
