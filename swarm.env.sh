@@ -34,7 +34,7 @@ export PROJECT_NAME="ldop"
 source ${CLI_DIR}/env.config.sh
 source ${CLI_DIR}/conf/env.provider.sh
 
-export EXTENSIONS="artifactory"
+export EXTENSIONS="nexus"
 
 docker volume create $REGISTRY_CERT_VOL
 

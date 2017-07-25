@@ -1,0 +1,210 @@
+#!/bin/bash -e
+
+SUB_CMD_NAME="compose"
+
+cmd_usage() {
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} [<options>] <subcommand>"
+    echo "Options:"
+    printf "    %-12s   %s\n" "-m <name>" "The name of the Docker Machine to target"
+    printf "    %-12s   %s\n" "-f <path>" "Additional override file for Docker Compose, can be specified more than once"
+    printf "    %-12s   %s\n" "-F <path>" "File to use for Docker Compose (in place of default), can be specified more than once"
+    printf "    %-12s   %s\n" "-l <driver>" "The logging driver to use"
+    printf "    %-12s   %s\n" "-v <driver>" "The volume driver to use"
+    printf "    %-12s   %s\n" "-n <name>" "The custom network to create (if not present) and use"
+    printf "    %-12s   %s\n" "-i <ip>" "The public IP that the proxy will be accessed from (only required when not using Docker Machine)"
+}
+
+help() {
+    cmd_usage
+    echo
+    echo "Available subcommands are:"
+    printf "    %-22s   %s\n" "init" "Initialises LDOP"
+    printf "    %-22s   %s\n" "init <--without-pull>" "Initialises LDOP without pulling images"
+    printf "    %-22s   %s\n" "init <--with-stdout>" "Initialises LDOP with logs being sent to stdout as opposed to specified logging driver"
+    printf "    %-22s   %s\n" "up" "docker-compose up for LDOP"
+    printf "    %-22s   %s\n" "gen-certs <path>" "Generate client certificates for TLS-enabled Machine and copy to <path> in Jenkins Slave"
+    printf "    %-22s   %s\n" "<command>" "Runs 'docker-compose <command>' for LDOP, where <command> is not listed above"
+    printf "    %-22s   %s\n" "help" "Prints this help information"
+    echo
+}
+
+pretty_sleep() {
+    secs=${1:-60}
+    tool=${2:-service}
+    while [ $secs -gt 0 ]; do
+        echo -ne "$tool unavailable, sleeping for: $secs\033[0Ks\r"
+        sleep 1
+        : $((secs--))
+    done
+    echo "$tool was unavailable, so slept for: ${1:-60} secs"
+}
+
+prep_env() {
+	# The sed expression here replaces all backslashes by forward slashes.
+	# This helps our Windows users, while not bothering our Unix users.
+	export CLI_DIR=$(dirname "$(echo "$1" | sed -e 's,\\,/,g')")
+	export CONF_DIR="${CLI_DIR}"
+	export CONF_PROVIDER_DIR="${CLI_DIR}/conf/provider"
+	CLI_CMD_DIR="${CLI_DIR}/cmd"
+
+	export TARGET_HOST=localhost
+
+	#credentials
+	source ${CLI_DIR}/credentials.generate.sh
+
+	#compose variables
+	# Defaults
+	DEFAULT_MACHINE_NAME="default"
+	export MACHINE_NAME=${DOCKER_MACHINE_NAME:-${DEFAULT_MACHINE_NAME}}
+	
+	export VOLUME_DRIVER=local
+	export LOGGING_DRIVER=syslog
+	export CUSTOM_NETWORK_NAME=swarm_network
+	export OVERRIDES=""
+	export TOTAL_OVERRIDES=""
+	export PULL="YES"
+	export MACHINE_NAME=""
+	export PROJECT_NAME="ldop"
+
+	#provider specific environment files
+	source ${CLI_DIR}/env.config.sh
+	source ${CLI_DIR}/conf/env.provider.sh
+
+	export EXTENSIONS="nexus"
+}
+
+create_volume_and_network() {
+	docker volume create $REGISTRY_CERT_VOL
+
+	docker network create --attachable -d overlay ${CUSTOM_NETWORK_NAME}
+}
+
+init() {
+	echo '
+	##        ########   #######  ########
+	##        ##     ## ##     ## ##     ##
+	##        ##     ## ##     ## ##     ##
+	##        ##     ## ##     ## ########
+	##        ##     ## ##     ## ##
+	##        ##     ## ##     ## ##
+	######### ########   #######  ##
+	'
+	echo "* Initialising LDOP"
+
+	prep_env
+
+  set +e
+
+  create_volume_and_network
+
+  set -e
+
+	export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check:/sensu" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
+
+	for ext in ${EXTENSIONS}; do
+          integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
+          proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
+
+          if [ -d "${integrations_dir}" ]; then
+              echo "* Integrating extension: $ext"
+
+              # Add proxy pass integration
+              if [ -d "${integrations_dir}/proxy" ]; then 
+                  echo "  * Adding proxy integration."
+                  docker cp ${integrations_dir}/proxy/sites-enabled/service-extension/. ${CONTAINER_ID}:/nginx/sites-enabled/service-extension
+              fi
+
+              # Add Sensu checks
+              if [ -d "${integrations_dir}/sensu/check.d" ]; then
+                  echo "  * Adding sensu integration."
+                  docker cp ${integrations_dir}/sensu/check.d/. ${CONTAINER_ID}:/sensu/
+              fi
+
+              docker stack deploy -c ${CLI_DIR}/extensions/$ext/docker-compose.yml ldop
+          fi
+	done
+
+	docker stack deploy -c swarm-compose.yml ldop
+
+	# Wait for Nginx to come up before proceeding
+	echo "* Waiting for the LDOP Swarm to become available"
+	echo "* Pulling down the Docker images may take a moment..."
+	until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 LDOP Swarm; done
+
+	for ext in ${EXTENSIONS}; do
+          integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
+          proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
+
+          if [ -d "${integrations_dir}" ]; then
+              # Add dashboard image resources
+              if [ -d "${integrations_dir}/proxy/release-note/img" ]; then
+                  echo "  * Adding dashboard image."
+                  docker cp ${integrations_dir}/proxy/release-note/img/. ${CONTAINER_ID}:/nginx_release/img
+              fi
+
+              # Add dashboard ui integrations
+              if [ -f "${integrations_dir}/proxy/release-note/plugins.json" ]; then
+                  echo "  * Adding dashboard ui configuration."
+                  docker run --rm -v "${PROJECT_NAME}_nginx_releasenote:/release-note" -v "$(pwd)/extensions/$ext/integrations/proxy/release-note/plugins.json:/new-plugins.json" endeveit/docker-jq /bin/sh -c "jq -s '.[0].core[0].components = (.[0].core[0].components+.[1].core[0].components|unique_by(.id))|.[0]' /release-note/plugins.json /new-plugins.json >/release-note/tmp.json && mv /release-note/tmp.json /release-note/plugins.json"
+              fi
+          fi
+	done
+
+	docker rm ${CONTAINER_ID}
+}
+
+down() {
+    prep_env
+
+    while [[ $1 ]]; do
+        case "$1" in
+            --volumes)
+                export VOLUMES="YES"
+                shift
+                ;;
+            --networks)
+                export NETWORKS="YES"
+                shift
+                ;;
+            *)
+                echo "Unrecognized option: $1"
+                help
+                exit 1
+                ;;
+        esac
+    done
+
+    echo 'Bringing LDOP stack down...'
+
+    docker stack rm ldop
+
+    until [[ $(docker ps | wc -l) < 2 ]]; do pretty_sleep 5 LDOP Stack; done
+
+    echo 'LDOP stack removed.'
+
+    if [ "${VOLUMES}" = "YES" ]; then
+      NODE_ADDRESSES=$(docker node ls | grep Active | sed 's/-/./g' | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+      echo $NODE_ADDRESSES
+    fi
+
+    if [ "${NETWORKS}" = "YES" ]; then
+      docker network rm ${CUSTOM_NETWORK_NAME}
+    fi
+}
+
+shift $(($OPTIND -1))
+SUBCOMMAND_OPT="${1:-help}"
+
+# Only shift if there are other parameters
+if [ $# -ge 1 ]; then
+    shift
+fi
+
+case ${SUBCOMMAND_OPT} in
+    "help"|"init"|"down")
+        ${SUBCOMMAND_OPT} "$@"
+        ;;
+    *)
+	echo "unknown command"
+        ;;
+esac
