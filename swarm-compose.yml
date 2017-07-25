@@ -367,7 +367,7 @@ services:
         tag: "sonar"
 
   jenkins:
-    image: liatrio/ldop-jenkins:2.1.5
+    image: liatrio/ldop-jenkins:2.1.7
     depends_on:
       - "elasticsearch"
       - "logstash"
