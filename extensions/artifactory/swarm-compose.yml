@@ -1,0 +1,36 @@
+version: '3'
+
+volumes:
+  artifactory_data:
+
+networks:
+  default:
+    external:
+      name: ${CUSTOM_NETWORK_NAME}
+
+services:
+  artifactory:
+    image: liatrio/ldop-artifactory:0.0.1
+    ports:
+      - "8081:8081"
+    volumes:
+      - artifactory_data:/var/opt/jfrog/artifactory
+    environment:
+      - LDAP_PWD
+      - LDAP_DOMAIN
+      - INITIAL_ADMIN_USER
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "artifactory"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager

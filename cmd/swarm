@@ -121,7 +121,7 @@ init() {
                   docker cp ${integrations_dir}/sensu/check.d/. ${CONTAINER_ID}:/sensu/
               fi
 
-              docker stack deploy -c ${CLI_DIR}/extensions/$ext/docker-compose.yml ldop
+              docker stack deploy -c ${CLI_DIR}/extensions/$ext/swarm-compose.yml ldop
           fi
 	done
 
