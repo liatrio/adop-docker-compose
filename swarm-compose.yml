@@ -349,7 +349,7 @@ services:
         constraints:
           - node.role == manager
 
-  sensu-client:
+  sensu-client-services:
     image: liatrio/ldop-sensu:0.3.0
     command: client
     depends_on:
@@ -380,6 +380,35 @@ services:
       placement:
         constraints:
           - node.role == manager
+
+  sensu-client-system:
+    image: liatrio/ldop-sensu:master
+    command: client
+    depends_on:
+      - "elasticsearch"
+      - "logstash"
+      - "kibana"
+    environment:
+      TRANSPORT_NAME: rabbitmq
+      CLIENT_NAME: ${RANDOM}
+      CLIENT_ADDRESS: 127.0.0.1
+      RABBITMQ_HOST: sensu-rabbitmq
+      JENKINS_PREFIX: jenkins
+      CLIENT_SUBSCRIPTIONS: "basic"
+    volumes:
+      - sensu_client_conf:/etc/sensu/conf.d
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-client"
+    deploy:
+      mode: global
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
 
   sensu-rabbitmq:
     image: rabbitmq:3.5.7-management
