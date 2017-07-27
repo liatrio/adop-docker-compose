@@ -101,6 +101,8 @@ init() {
 	# Launches a busybox to mount volumes to simplify the process of adding extensions. The mounted volumes are forced to exist, and the needed directories are created. This action is idempotent.
 	export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check:/sensu" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
 
+  docker cp $(pwd)/submodules/ldop-sensu/resources/check.d/. ${CONTAINER_ID}:/sensu/
+   
 	# Iterate across all of our listed extensions and adds the required information to Nginx and Sensu. Launches the extension into the swarm.
 	for ext in ${EXTENSIONS}; do
           integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
