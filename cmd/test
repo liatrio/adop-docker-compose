@@ -192,7 +192,8 @@ print_statuses() {
   done
   echo '##########################################################'
 }
-test_basic_job () {
+
+test_job () {
   echo ' Testing Job '$1
   # Sources to obtain the password for Jenkins
   source ${CONF_DIR}/conf/env.provider.sh
@@ -210,9 +211,18 @@ test_basic_job () {
   # -s silent, don't output curl details
   # docker exec jenkins, execute from within jenkins container
   # --data '', execute the curl as a POST
+  # If the parameterized flag is true then
   # /buildWithParameters, build with default parameters
-  docker exec jenkins curl -s --data '' jenkins:${PASSWORD_JENKINS}@${JOB_URL}/build
-  echo " ...triggered the job '$1' to build..."
+  if [ $2 = true ]
+  then
+    docker exec jenkins curl -s --data '' \
+    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
+    echo " ...triggered the job '$1' to build with default parameters..."
+  # Otherwise, build the job with no parameters defined
+  else
+    docker exec jenkins curl -s --data '' jenkins:${PASSWORD_JENKINS}@${JOB_URL}/build
+    echo " ...triggered the job '$1' to build..."
+  fi
   # Disable -e as set in LDOP...
   set +e
   # ...while the successful curl of the lastBuild information
@@ -244,58 +254,6 @@ test_basic_job () {
   echo '##########################################################'
 }
 
-test_parameterized_job () {
-  echo ' Testing Job '$1
-  # Sources to obtain the password for Jenkins
-  source ${CONF_DIR}/conf/env.provider.sh
-  source ${CONF_DIR}/credentials.generate.sh
-  source ${CONF_DIR}/env.config.sh
-  # The URL of the job $1 as hit from within the Jenkins container
-  if [ -z "${DOCKER_MACHINE_NAME}" ]; then
-    JOB_URL=localhost:8080/jenkins/job/$1
-  else
-    JOB_URL=$(docker-machine ip $DOCKER_MACHINE_NAME)/jenkins/job/$1
-  fi
-  # A value to determine if the job is currently executing
-  GREP_RETURN_CODE=0
-  # Trigger the parameterized job with default parameters.
-  # -s silent, don't output curl details
-  # docker exec jenkins, execute from within jenkins container
-  # --data '', execute the curl as a POST
-  # /buildWithParameters, build with default parameters
-  docker exec jenkins curl -s --data '' \
-    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/buildWithParameters
-  echo " ...triggered the job '$1' to build with default parameters..."
-  # Disable -e as set in LDOP...
-  set +e
-  # ...while the successful curl of the lastBuild information
-  # holds a null value as the result...
-  # "while the job is still executing"
-  while [ $GREP_RETURN_CODE -eq 0 ]
-  do
-    # Give the job time to build, check every 30 seconds
-    echo " ...waiting 30 seconds for '$1' job to build... "
-    sleep 30
-    CURL=$(docker exec jenkins curl -s \
-      jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json?tree=building)
-    # If the curl command did not error...
-    # (only update the "job currently executing" variable if the curl succeeds)
-    if [ $? -eq 0 ]
-    then
-      # Grep will return 0 (successfully obtained null result)
-      # while the build is running
-      echo $CURL | grep building\":true > /dev/null
-      GREP_RETURN_CODE=$?
-    fi
-    # If the curl command errored, sleep and try again
-  done
-  CURL=$(docker exec jenkins curl -s \
-    jenkins:${PASSWORD_JENKINS}@${JOB_URL}/lastBuild/api/json?tree=result)
-  RESULT=$(echo $CURL | grep -E -o "result\":.{0,10}" | awk -F'"' '{print $3}')
-  echo " ...'$1' job completed! Build Status: $RESULT"
-  set -e
-  echo '##########################################################'
-}
 start_with_test_volumes() {
   echo " ...starting LDOP with temporary volumes..."
   if [ "$1" = false ]
@@ -365,7 +323,7 @@ job() {
 
   if [ "$JOB_P_FLAG" = true ]
   then
-    test_parameterized_job $JOB_PARAM
+    test_job $JOB_PARAM "true"
     # Inform the user that results are to follow
     results_test_text "Parameterized Job"
     echo " $JOB_PARAM Build Result: $RESULT"
@@ -381,7 +339,7 @@ job() {
 
   if [ "$JOB_B_FLAG" = true ]
   then
-    test_basic_job $JOB_BASIC
+    test_job $JOB_BASIC "false"
     # Inform the user that results are to follow
     results_test_text "Basic Job"
     echo " $JOB_BASIC Build Result: $RESULT"
@@ -527,7 +485,8 @@ basic() {
   start_with_test_volumes $BASIC_W_FLAG
 
   # Run Load_Platform and store the result in $RESULT globally
-  test_parameterized_job "Load_Platform"
+  # test_parameterized_job "Load_Platform"
+  echo "Test basic job TBI for spring-petclinic"
 
   # Save the state of non-running containers to output after shut down
   examine_statuses
