@@ -529,7 +529,7 @@ services:
           - node.role == manager
 
   jenkins:
-    image: huntermayers/ldop-jenkins:2.1.10
+    image: liatrio/ldop-jenkins:2.1.10
     depends_on:
       - "elasticsearch"
       - "logstash"
@@ -603,7 +603,7 @@ services:
           - node.role == worker
 
   jenkins-slave:
-    image: huntermayers/ldop-jenkins-slave:0.1.5
+    image: liatrio/ldop-jenkins-slave:0.1.5
     depends_on:
       - "elasticsearch"
       - "logstash"
