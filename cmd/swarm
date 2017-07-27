@@ -121,6 +121,8 @@ init() {
               if [ -d "${integrations_dir}/sensu/check.d" ]; then
                   echo "  * Adding sensu integration."
                   docker cp ${integrations_dir}/sensu/check.d/. ${CONTAINER_ID}:/sensu/
+                  # Add extension sensu client subscription
+                  export SENSU_CLIENT_SUBSCRIPTIONS="${SENSU_CLIENT_SUBSCRIPTIONS},$ext"
               fi
 
               docker stack deploy -c ${CLI_DIR}/extensions/$ext/swarm-compose.yml ldop

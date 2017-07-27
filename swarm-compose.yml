@@ -500,7 +500,7 @@ services:
           - node.role == manager
 
   jenkins:
-    image: huntermayers/ldop-jenkins:2.1.7
+    image: huntermayers/ldop-jenkins:2.1.10
     depends_on:
       - "elasticsearch"
       - "logstash"
