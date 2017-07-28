@@ -2,15 +2,6 @@
 
 # ./source.env.sh
 
-export STACK_NAME=ldop
-
-# The sed expression here replaces all backslashes by forward slashes.
-# This helps our Windows users, while not bothering our Unix users.
-export CLI_DIR=$(dirname "$(echo "$1" | sed -e 's,\\,/,g')")
-export CONF_DIR="${CLI_DIR}"
-export CONF_PROVIDER_DIR="${CLI_DIR}/conf/provider"
-CLI_CMD_DIR="${CLI_DIR}/cmd"
-
 export TARGET_HOST=localhost
 
 #credentials
@@ -35,7 +26,3 @@ source ${CLI_DIR}/env.config.sh
 source ${CLI_DIR}/conf/env.provider.sh
 
 export EXTENSIONS="nexus"
-
-docker volume create $REGISTRY_CERT_VOL
-
-docker network create --attachable -d overlay ${CUSTOM_NETWORK_NAME}
