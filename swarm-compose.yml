@@ -108,7 +108,7 @@ services:
           - node.role == manager
 
   proxy:
-    image: liatrio/ldop-nginx:0.4.2
+    image: liatrio/ldop-nginx:0.4.3
     depends_on:
       - "elasticsearch"
       - "logstash"
