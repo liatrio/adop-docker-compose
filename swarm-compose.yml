@@ -8,7 +8,6 @@ networks:
     external:
       name: ${CUSTOM_NETWORK_NAME}
 
-
 volumes:
   elasticsearch_data:
   nginx_config:
@@ -36,8 +35,6 @@ volumes:
     external: true
   registry_data:
 
-
-
 services:
   elasticsearch:
     image: elasticsearch:2.1.1
@@ -46,6 +43,16 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   logstash:
     image: liatrio/ldop-logstash:0.1.0
@@ -56,6 +63,23 @@ services:
       - "12201:12201/udp"
       - "25826:25826/udp"
       - "5000:5000/tcp"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   kibana:
     image: kibana:4.3.1
@@ -65,6 +89,23 @@ services:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
     ports:
       - "5601:5601"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   proxy:
     image: liatrio/ldop-nginx:0.4.2
@@ -93,6 +134,12 @@ services:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "proxy"
     deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
       placement:
         constraints:
           - node.role == manager
@@ -121,6 +168,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "ldap"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   gerrit-mysql:
     image: mysql:5.6.25
@@ -140,6 +197,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "gerrit-mysql"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   gerrit:
     image: liatrio/ldop-gerrit:0.1.3
@@ -186,6 +253,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "gerrit"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-uchiwa:
     image: sstarcher/uchiwa:0.15.0
@@ -202,6 +279,12 @@ services:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-uchiwa"
     deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
       placement:
         constraints:
           - node.role == manager
@@ -225,6 +308,12 @@ services:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-api"
     deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
       placement:
         constraints:
           - node.role == manager
@@ -250,6 +339,12 @@ services:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-server"
     deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
       placement:
         constraints:
           - node.role == manager
@@ -276,6 +371,12 @@ services:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-client"
     deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
       placement:
         constraints:
           - node.role == manager
@@ -294,6 +395,12 @@ services:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-rabbitmq"
     deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
       placement:
         constraints:
           - node.role == manager
@@ -312,6 +419,12 @@ services:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sensu-redis"
     deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
       placement:
         constraints:
           - node.role == manager
@@ -334,6 +447,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sonar-mysql"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   sonar:
     image: liatrio/ldop-sonar:0.2.0
@@ -365,6 +488,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "sonar"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   jenkins:
     image: liatrio/ldop-jenkins:2.1.7
@@ -429,6 +562,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "jenkins"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == worker
 
   jenkins-slave:
     image: liatrio/ldop-jenkins-slave:0.1.4
@@ -450,6 +593,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "jenkins-slave"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == worker
 
   selenium-hub:
     image: selenium/hub:2.53.0
@@ -462,6 +615,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "selenium-hub"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   selenium-node-chrome:
     image: selenium/node-chrome:2.53.0
@@ -479,6 +642,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "selenium-node-chrome"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   selenium-node-firefox:
     image: selenium/node-firefox:2.53.0
@@ -496,6 +669,16 @@ services:
       options:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "selenium-node-firefox"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   ldap-ltb:
     image: liatrio/ldop-ldap-ltb:0.1.0
@@ -508,6 +691,16 @@ services:
       LDAP_LTB_DN: "${LDAP_ADMIN},${LDAP_FULL_DOMAIN}"
       LDAP_LTB_PWD: "${LDAP_PWD}"
       LDAP_LTB_BS: "${LDAP_FULL_DOMAIN}"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   ldap-phpadmin:
     image: liatrio/ldop-ldap-phpadmin:0.1.0
@@ -521,6 +714,16 @@ services:
       LDAP_SERVER_PORT: "389"
       LDAP_SERVER_BIND_ID: "${LDAP_ADMIN},${LDAP_FULL_DOMAIN}"
       LDAP_SERVER_BASE_DN: "${LDAP_FULL_DOMAIN}"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   registry:
     image: registry:2.5.1
@@ -541,6 +744,12 @@ services:
         syslog-address: "udp://${LOGSTASH_HOST}:25826"
         tag: "registry"
     deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
       placement:
         constraints:
           - node.role == manager
