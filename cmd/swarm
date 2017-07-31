@@ -145,6 +145,8 @@ init() {
   #Have sensu container copy the extension cheks into base checks volume
 	docker run  -v "${PROJECT_NAME}_sensu_server_check:/sensu" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "cp -r /sensu_ext/. /sensu/"
  
+  docker service update --force ${PROJECT_NAME}_sensu-server
+
 	for ext in ${EXTENSIONS}; do
           integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
           proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
