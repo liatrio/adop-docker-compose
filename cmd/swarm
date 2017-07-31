@@ -99,14 +99,14 @@ init() {
   set -e
 
 	# Launches a busybox to mount volumes to simplify the process of adding extensions. The mounted volumes are forced to exist, and the needed directories are created. This action is idempotent.
-	export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check:/sensu" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
+	export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
 
   #pull ldop submodules for sensu checks
   #git submodule update --init --recursive
   #git pull --recurse-submodules
 
   #copy original sensu checks into sensu volume
-  docker cp $(pwd)/submodules/ldop-sensu/resources/check.d/. ${CONTAINER_ID}:/sensu/
+  #docker cp $(pwd)/submodules/ldop-sensu/resources/check.d/. ${CONTAINER_ID}:/sensu/
    
 	# Iterate across all of our listed extensions and adds the required information to Nginx and Sensu. Launches the extension into the swarm.
 	for ext in ${EXTENSIONS}; do
@@ -125,7 +125,7 @@ init() {
               # Add Sensu checks
               if [ -d "${integrations_dir}/sensu/check.d" ]; then
                   echo "  * Adding sensu integration."
-                  docker cp ${integrations_dir}/sensu/check.d/. ${CONTAINER_ID}:/sensu/
+                  docker cp ${integrations_dir}/sensu/check.d/. ${CONTAINER_ID}:/sensu_ext/
                   # Add extension sensu client subscription
                   export SENSU_CLIENT_SUBSCRIPTIONS="${SENSU_CLIENT_SUBSCRIPTIONS},$ext"
               fi
@@ -137,11 +137,14 @@ init() {
 	# Launches LDOP into the swarm.
 	docker stack deploy -c swarm-compose.yml ldop
 
+
 	# Wait for Nginx to come up before proceeding
 	echo "* Waiting for the LDOP Swarm to become available"
 	echo "* Pulling down the Docker images may take a moment..."
 	until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 LDOP Swarm; done
-
+  #Have sensu container copy the extension cheks into base checks volume
+	docker run  -v "${PROJECT_NAME}_sensu_server_check:/sensu" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "cp /sensu_ext/. /sensu"
+ 
 	for ext in ${EXTENSIONS}; do
           integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
           proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
