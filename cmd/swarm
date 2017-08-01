@@ -1,0 +1,208 @@
+#!/bin/bash -e
+
+SUB_CMD_NAME="swarm"
+
+cmd_usage() {
+    echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} [<options>]"
+    echo "Options:"
+    printf "    %-12s   %s\n" "-a <option>" "Example description."
+}
+
+help() {
+    cmd_usage
+    echo
+    echo "Available subcommands are:"
+    printf "    %-22s   %s\n" "init" "Launches the LDOP platform onto a Docker swarm."
+    printf "    %-22s   %s\n" "down" "Brings down the LDOP services running in the swarm."
+    printf "    %-22s   %s\n" "down --volumes" "Brings down the LDOP services running in the swarm and destroys associated volumes."
+    printf "    %-22s   %s\n" "down --networks" "Brings down the LDOP services running in the swarm and removes associated networks."
+    printf "    %-22s   %s\n" "help" "Prints this help information"
+    echo
+}
+
+pretty_sleep() {
+    secs=${1:-60}
+    tool=${2:-service}
+    while [ $secs -gt 0 ]; do
+        echo -ne "$tool unavailable, sleeping for: $secs\033[0Ks\r"
+        sleep 1
+        : $((secs--))
+    done
+    echo "$tool was unavailable, so slept for: ${1:-60} secs"
+}
+
+prep_env() {
+  source ${CLI_DIR}/swarm.env.sh
+}
+
+create_volume_and_network() {
+	docker volume create $REGISTRY_CERT_VOL
+
+	docker network create --attachable -d overlay ${CUSTOM_NETWORK_NAME}
+}
+                                          
+init() {
+	echo '
+ __         _____     ______     ______                     
+/\ \       /\  __-.  /\  __ \   /\  == \                    
+\ \ \____  \ \ \/\ \ \ \ \/\ \  \ \  _-/                    
+ \ \_____\  \ \____-  \ \_____\  \ \_\                      
+  \/_____/   \/____/   \/_____/   \/_/                      
+                                                            
+ ______     __     __     ______     ______     __    __    
+/\  ___\   /\ \  _ \ \   /\  __ \   /\  == \   /\ "-./  \   
+\ \___  \  \ \ \/ ".\ \  \ \  __ \  \ \  __<   \ \ \-./\ \  
+ \/\_____\  \ \__/".~\_\  \ \_\ \_\  \ \_\ \_\  \ \_\ \ \_\ 
+  \/_____/   \/_/   \/_/   \/_/\/_/   \/_/ /_/   \/_/  \/_/
+	'
+	echo "* Initialising LDOP"
+
+	prep_env
+
+  set +e
+
+  create_volume_and_network
+
+  set -e
+
+	# Launches a busybox to mount volumes to simplify the process of adding extensions. The mounted volumes are forced to exist, and the needed directories are created. This action is idempotent.
+	export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
+
+  #pull ldop submodules for sensu checks
+  #git submodule update --init --recursive
+  #git pull --recurse-submodules
+
+  #copy original sensu checks into sensu volume
+  #docker cp $(pwd)/submodules/ldop-sensu/resources/check.d/. ${CONTAINER_ID}:/sensu/
+   
+	# Iterate across all of our listed extensions and adds the required information to Nginx and Sensu. Launches the extension into the swarm.
+	for ext in ${EXTENSIONS}; do
+          integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
+          proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
+
+          if [ -d "${integrations_dir}" ]; then
+              echo "* Integrating extension: $ext"
+
+              # Add proxy pass integration
+              if [ -d "${integrations_dir}/proxy" ]; then 
+                  echo "  * Adding proxy integration."
+                  docker cp ${integrations_dir}/proxy/sites-enabled/service-extension/. ${CONTAINER_ID}:/nginx/sites-enabled/service-extension
+              fi
+
+              # Add Sensu checks
+              if [ -d "${integrations_dir}/sensu/check.d" ]; then
+                  echo "  * Adding sensu integration."
+                  docker cp ${integrations_dir}/sensu/check.d/. ${CONTAINER_ID}:/sensu_ext/
+                  # Add extension sensu client subscription
+                  export SENSU_CLIENT_SUBSCRIPTIONS="${SENSU_CLIENT_SUBSCRIPTIONS},$ext"
+              fi
+
+              docker stack deploy -c ${CLI_DIR}/extensions/$ext/swarm-compose.yml ldop
+          fi
+	done
+
+	# Launches LDOP into the swarm.
+	docker stack deploy -c swarm-compose.yml ldop
+
+
+	# Wait for Nginx to come up before proceeding
+	echo "* Waiting for the LDOP Swarm to become available"
+	echo "* Pulling down the Docker images may take a moment..."
+	until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 LDOP Swarm; done
+  #Have sensu container copy the extension cheks into base checks volume
+	docker run  -v "${PROJECT_NAME}_sensu_server_check:/sensu" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "cp -r /sensu_ext/. /sensu/"
+ 
+  docker service update --force ${PROJECT_NAME}_sensu-server
+
+	for ext in ${EXTENSIONS}; do
+          integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
+          proxy_integrations_dir="${CLI_DIR}/extensions/$ext/integrations/proxy"
+
+          if [ -d "${integrations_dir}" ]; then
+              # Add dashboard image resources
+              if [ -d "${integrations_dir}/proxy/release-note/img" ]; then
+                  echo "  * Adding dashboard image."
+                  docker cp ${integrations_dir}/proxy/release-note/img/. ${CONTAINER_ID}:/nginx_release/img
+              fi
+
+              # Add dashboard ui integrations
+              if [ -f "${integrations_dir}/proxy/release-note/plugins.json" ]; then
+                  echo "  * Adding dashboard ui configuration."
+                  docker run --rm -v "${PROJECT_NAME}_nginx_releasenote:/release-note" -v "$(pwd)/extensions/$ext/integrations/proxy/release-note/plugins.json:/new-plugins.json" endeveit/docker-jq /bin/sh -c "jq -s '.[0].core[0].components = (.[0].core[0].components+.[1].core[0].components|unique_by(.id))|.[0]' /release-note/plugins.json /new-plugins.json >/release-note/tmp.json && mv /release-note/tmp.json /release-note/plugins.json"
+              fi
+          fi
+	done
+
+	# Removes the busybox container.
+	docker rm ${CONTAINER_ID}
+}
+
+down() {
+	echo '
+ __         _____     ______     ______                     
+/\ \       /\  __-.  /\  __ \   /\  == \                    
+\ \ \____  \ \ \/\ \ \ \ \/\ \  \ \  _-/                    
+ \ \_____\  \ \____-  \ \_____\  \ \_\                      
+  \/_____/   \/____/   \/_____/   \/_/                      
+                                                            
+ ______     __     __     ______     ______     __    __    
+/\  ___\   /\ \  _ \ \   /\  __ \   /\  == \   /\ "-./  \   
+\ \___  \  \ \ \/ ".\ \  \ \  __ \  \ \  __<   \ \ \-./\ \  
+ \/\_____\  \ \__/".~\_\  \ \_\ \_\  \ \_\ \_\  \ \_\ \ \_\ 
+  \/_____/   \/_/   \/_/   \/_/\/_/   \/_/ /_/   \/_/  \/_/
+	'
+
+    prep_env
+
+    while [[ $1 ]]; do
+        case "$1" in
+            --volumes)
+                export VOLUMES="YES"
+                shift
+                ;;
+            --networks)
+                export NETWORKS="YES"
+                shift
+                ;;
+            *)
+                echo "Unrecognized option: $1"
+                help
+                exit 1
+                ;;
+        esac
+    done
+
+    echo 'Bringing LDOP stack down...'
+
+    docker stack rm ldop
+
+    until [[ $(docker ps | wc -l) < 2 ]]; do sleep 1; done
+
+    echo 'LDOP stack removed.'
+
+    if [ "${VOLUMES}" = "YES" ]; then
+      NODE_ADDRESSES=$(docker node ls | grep Active | sed 's/-/./g' | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+      echo $NODE_ADDRESSES
+    fi
+
+    if [ "${NETWORKS}" = "YES" ]; then
+      docker network rm ${CUSTOM_NETWORK_NAME}
+    fi
+}
+
+shift $(($OPTIND -1))
+SUBCOMMAND_OPT="${1:-help}"
+
+# Only shift if there are other parameters
+if [ $# -ge 1 ]; then
+    shift
+fi
+
+case ${SUBCOMMAND_OPT} in
+    "help"|"init"|"down")
+        ${SUBCOMMAND_OPT} "$@"
+        ;;
+    *)
+	echo "unknown command"
+        ;;
+esac

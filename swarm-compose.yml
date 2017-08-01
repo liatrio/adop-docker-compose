@@ -8,20 +8,54 @@ networks:
     external:
       name: ${CUSTOM_NETWORK_NAME}
 
+volumes:
+  elasticsearch_data:
+  nginx_config:
+  nginx_releasenote:
+  ldap_db:
+  ldap_static:
+  gerrit_mysql_data:
+  git_repos:
+  gerrit_review_site:
+  sensu_api_conf:
+  sensu_server_conf:
+  sensu_server_check:
+  sensu_client_conf:
+  sensu_rabbitmq_data:
+  sensu_redis_data:
+  sonar_mysql_data:
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:
+  jenkins_slave_home:
+  jenkins_home:
+  jenkins_home:
+  jenkins_usr:
+  registry_certs:
+    external: true
+  registry_data:
+
 services:
   elasticsearch:
-    container_name: elasticsearch
-    restart: always
     image: elasticsearch:2.1.1
     command: elasticsearch -Des.network.host=0.0.0.0
     ports:
       - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   logstash:
-    container_name: logstash
-    restart: always
     image: liatrio/ldop-logstash:0.1.0
-    build: submodules/ldop-logstash
     environment:
       - "constraint:tier==public"
       - LS_HEAP_SIZE=1024m
@@ -29,10 +63,25 @@ services:
       - "12201:12201/udp"
       - "25826:25826/udp"
       - "5000:5000/tcp"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   kibana:
-    container_name: kibana
-    restart: always
     image: kibana:4.3.1
     environment:
     command: kibana
@@ -40,12 +89,26 @@ services:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
     ports:
       - "5601:5601"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   proxy:
-    container_name: proxy
-    restart: always
     image: liatrio/ldop-nginx:0.4.3
-    build: submodules/ldop-nginx
     depends_on:
       - "elasticsearch"
       - "logstash"
@@ -62,18 +125,31 @@ services:
       - "LDAP_GROUP_ATTRIBUTE=member"
       - "LDAP_USER_ID_ATTRIBUTE=cn"
       - "LDAP_USER_OBJECT_CLASS=inetOrgPerson"
+    volumes:
+      - nginx_config:/etc/nginx
+      - nginx_releasenote:/usr/share/nginx/html
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "proxy"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   ldap:
-    container_name: ldap
-    restart: always
     image: liatrio/ldop-ldap:0.1.3
-    build: submodules/ldop-ldap
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "389"
     ports:
       - "389:389/tcp"
     environment:
@@ -84,36 +160,60 @@ services:
       SLAPD_PASSWORD: ${LDAP_PWD}
       SLAPD_DOMAIN: ${LDAP_DOMAIN}
       SLAPD_FULL_DOMAIN: ${LDAP_FULL_DOMAIN}
+    volumes:
+      - ldap_db:/var/lib/ldap
+      - ldap_static:/etc/ldap
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "ldap"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   gerrit-mysql:
-    container_name: gerrit-mysql
-    restart: always
     image: mysql:5.6.25
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${PASSWORD_SQL}
       MYSQL_USER: ${GERRIT_MYSQL_USER}
       MYSQL_PASSWORD: ${GERRIT_MYSQL_PASSWORD}
       MYSQL_DATABASE: ${GERRIT_MYSQL_DATABASE}
+    volumes:
+      - gerrit_mysql_data:/var/lib/mysql
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "gerrit-mysql"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   gerrit:
-    container_name: gerrit
-    restart: always
     image: liatrio/ldop-gerrit:0.1.3
-    build: submodules/ldop-gerrit
-    privileged: true
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "8080"
-      - "29418"
     environment:
       - "dependency:container==gerrit-mysql"
       - "REPO_PATH=/var/git/repos"
@@ -144,10 +244,27 @@ services:
       - "USER_NAME=${GERRIT_USER_NAME}"
       - "USER_EMAIL=${GERRIT_USER_EMAIL}"
       - "DOWNLOAD_SCHEME=http"
+    volumes:
+      - git_repos:/var/git/repos
+      - gerrit_review_site:/var/gerrit/review_site
+    user: root
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "gerrit"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-uchiwa:
-    container_name: sensu-uchiwa
-    restart: always
     image: sstarcher/uchiwa:0.15.0
     depends_on:
       - "elasticsearch"
@@ -156,31 +273,53 @@ services:
     environment:
       SENSU_HOSTNAME: sensu-api
       SENSU_DC_NAME: Sensu
-    expose:
-      - "3000"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-uchiwa"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-api:
-    container_name: sensu-api
-    restart: always
     image: liatrio/ldop-sensu:0.3.0
-    build: submodules/ldop-sensu
     command: api
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "4567"
     environment:
       TRANSPORT_NAME: rabbitmq
       RABBITMQ_HOST: sensu-rabbitmq
       REDIS_HOST: sensu-redis
+    volumes:
+      - sensu_api_conf:/etc/sensu/conf.d
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-api"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-server:
-    container_name: sensu-server
-    restart: always
     image: liatrio/ldop-sensu:0.3.0
-    build: submodules/ldop-sensu
     command: server
     depends_on:
       - "elasticsearch"
@@ -191,12 +330,27 @@ services:
       RABBITMQ_HOST: sensu-rabbitmq
       REDIS_HOST: sensu-redis
       TRANSPORT_NAME: rabbitmq
+    volumes:
+      - sensu_server_conf:/etc/sensu/conf.d
+      - sensu_server_check:/etc/sensu/check.d
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-server"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
-  sensu-client:
-    container_name: sensu-client
-    restart: always
+  sensu-client-services:
     image: liatrio/ldop-sensu:0.3.0
-    build: submodules/ldop-sensu
     command: client
     depends_on:
       - "elasticsearch"
@@ -209,59 +363,136 @@ services:
       RABBITMQ_HOST: sensu-rabbitmq
       JENKINS_PREFIX: jenkins
       CLIENT_SUBSCRIPTIONS: "${SENSU_CLIENT_SUBSCRIPTIONS}"
+    volumes:
+      - sensu_client_conf:/etc/sensu/conf.d
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-client"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
+
+  sensu-client-system:
+    image: liatrio/ldop-sensu:master
+    command: client
+    depends_on:
+      - "elasticsearch"
+      - "logstash"
+      - "kibana"
+    environment:
+      TRANSPORT_NAME: rabbitmq
+      CLIENT_NAME: ${RANDOM}
+      CLIENT_ADDRESS: 127.0.0.1
+      RABBITMQ_HOST: sensu-rabbitmq
+      JENKINS_PREFIX: jenkins
+      CLIENT_SUBSCRIPTIONS: "basic"
+    volumes:
+      - sensu_client_conf:/etc/sensu/conf.d
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-client"
+    deploy:
+      mode: global
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
 
   sensu-rabbitmq:
-    container_name: sensu-rabbitmq
-    restart: always
     image: rabbitmq:3.5.7-management
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "5672"
-      - "5671"
-      - "15672"
-      - "15671"
+    volumes:
+      - sensu_rabbitmq_data:/var/lib/rabbitmq
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-rabbitmq"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   sensu-redis:
-    container_name: sensu-redis
-    restart: always
     image: redis:3.0.7
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "6379"
+    volumes:
+      - sensu_redis_data:/data
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sensu-redis"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   sonar-mysql:
-    container_name: sonar-mysql
-    restart: always
     image: mysql:5.6.25
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${PASSWORD_SQL}
       MYSQL_USER: ${SONAR_MYSQL_USER}
       MYSQL_PASSWORD: ${SONAR_MYSQL_PASSWORD}
       MYSQL_DATABASE: ${SONAR_MYSQL_DATABASE}
+    volumes:
+      - sonar_mysql_data:/var/lib/mysql
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sonar-mysql"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   sonar:
-    container_name: sonar
-    restart: always
     image: liatrio/ldop-sonar:0.2.0
-    build: submodules/ldop-sonar
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "9000"
     environment:
       - "dependency:container==sonar-mysql"
       - "SONARQUBE_JDBC_USERNAME=${SONAR_MYSQL_USER}"
@@ -277,22 +508,34 @@ services:
       - "LDAP_GROUP_REQUEST=(&(objectClass=groupOfUniqueNames)(uniqueMember={dn}))"
       - "LDAP_GROUP_ID_ATTRIBUTE=cn"
       - "SONARQUBE_JDBC_URL=jdbc:mysql://sonar-mysql:3306/${SONAR_MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&rewriteBatchedStatements=true"
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "sonar"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   jenkins:
-    container_name: jenkins
-    restart: always
     image: liatrio/ldop-jenkins:2.1.10
-    build: submodules/ldop-jenkins
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
     ports:
       - "50000:50000/tcp"
-    expose:
-      - "8080"
-      - "50000"
-    privileged: true
     environment:
       JENKINS_OPTS: "--prefix=/jenkins"
       ROOT_URL: "${PROTO}://${TARGET_HOST}/jenkins/"
@@ -339,17 +582,32 @@ services:
       DOCKER_NETWORK_NAME: ${CUSTOM_NETWORK_NAME}
       CARTRIDGE_SOURCES: ${CARTRIDGE_SOURCES}
       LDOP_NETWORK_NAME: ${CUSTOM_NETWORK_NAME}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins_usr:/etc
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "jenkins"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == worker
 
   jenkins-slave:
-    container_name: jenkins-slave
-    restart: always
-    image: huntermayers/ldop-jenkins-slave:0.1.5
-    build: submodules/ldop-jenkins-slave
+    image: liatrio/ldop-jenkins-slave:0.1.5
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    privileged: true
     environment:
       SLAVE_LABELS: "aws ldap java8 docker"
       SWARM_PASSWORD: ${PASSWORD_JENKINS}
@@ -399,21 +657,48 @@ services:
       DOCKER_NETWORK_NAME: ${CUSTOM_NETWORK_NAME}
       CARTRIDGE_SOURCES: ${CARTRIDGE_SOURCES}
       LDOP_NETWORK_NAME: ${CUSTOM_NETWORK_NAME}
+    volumes:
+      - jenkins_slave_home:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "jenkins-slave"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == worker
 
   selenium-hub:
-    container_name: selenium-hub
-    restart: always
     image: selenium/hub:2.53.0
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "4444"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "selenium-hub"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   selenium-node-chrome:
-    container_name: selenium-node-chrome
-    restart: always
     image: selenium/node-chrome:2.53.0
     depends_on:
       - "elasticsearch"
@@ -424,10 +709,23 @@ services:
       REMOTE_HOST: "http://selenium-node-chrome:5555"
       HUB_PORT_4444_TCP_ADDR: "selenium-hub"
       HUB_PORT_4444_TCP_PORT: "4444"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "selenium-node-chrome"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   selenium-node-firefox:
-    container_name: selenium-node-firefox
-    restart: always
     image: selenium/node-firefox:2.53.0
     depends_on:
       - "elasticsearch"
@@ -438,53 +736,92 @@ services:
       REMOTE_HOST: "http://selenium-node-firefox:5555"
       HUB_PORT_4444_TCP_ADDR: "selenium-hub"
       HUB_PORT_4444_TCP_PORT: "4444"
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "selenium-node-firefox"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   ldap-ltb:
-    container_name: ldap-ltb
-    restart: always
     image: liatrio/ldop-ldap-ltb:0.1.0
-    build: submodules/ldop-ldap-ltb
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "80"
     environment:
       LDAP_LTB_URL: "ldap://${LDAP_SERVER}"
       LDAP_LTB_DN: "${LDAP_ADMIN},${LDAP_FULL_DOMAIN}"
       LDAP_LTB_PWD: "${LDAP_PWD}"
       LDAP_LTB_BS: "${LDAP_FULL_DOMAIN}"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   ldap-phpadmin:
-    container_name: ldap-phpadmin
-    restart: always
     image: liatrio/ldop-ldap-phpadmin:0.1.0
-    build: submodules/ldop-ldap-phpadmin
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "80"
     environment:
       LDAP_SERVER_NAME: "LDAP"
       LDAP_SERVER_HOST: "ldap"
       LDAP_SERVER_PORT: "389"
       LDAP_SERVER_BIND_ID: "${LDAP_ADMIN},${LDAP_FULL_DOMAIN}"
       LDAP_SERVER_BASE_DN: "${LDAP_FULL_DOMAIN}"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
 
   registry:
-    container_name: registry
-    restart: always
     image: registry:2.5.1
     depends_on:
       - "elasticsearch"
       - "logstash"
       - "kibana"
-    expose:
-      - "5000"
     environment:
       REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
       REGISTRY_HTTP_TLS_CERTIFICATE: /certs/registry/fullchain.pem
       REGISTRY_HTTP_TLS_KEY: /certs/registry/privkey.pem
+    volumes:
+      - registry_certs:/certs
+      - registry_data:/data
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "udp://${LOGSTASH_HOST}:25826"
+        tag: "registry"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.role == manager
