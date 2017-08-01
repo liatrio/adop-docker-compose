@@ -281,7 +281,7 @@ services:
   jenkins:
     container_name: jenkins
     restart: always
-    image: huntermayers/ldop-jenkins:2.1.10
+    image: liatrio/ldop-jenkins:2.1.10
     build: submodules/ldop-jenkins
     depends_on:
       - "elasticsearch"
@@ -343,7 +343,7 @@ services:
   jenkins-slave:
     container_name: jenkins-slave
     restart: always
-    image: huntermayers/ldop-jenkins-slave:0.1.5
+    image: liatrio/ldop-jenkins-slave:0.1.5
     build: submodules/ldop-jenkins-slave
     depends_on:
       - "elasticsearch"
