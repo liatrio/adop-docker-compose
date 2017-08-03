@@ -9,31 +9,11 @@ networks:
       name: ${CUSTOM_NETWORK_NAME}
 
 volumes:
-  elasticsearch_data:
-  nginx_config:
-  nginx_releasenote:
-  ldap_db:
-  ldap_static:
-  gerrit_mysql_data:
   git_repos:
   gerrit_review_site:
-  sensu_api_conf:
-  sensu_server_conf:
-  sensu_server_check:
-  sensu_client_conf:
-  sensu_rabbitmq_data:
-  sensu_redis_data:
-  sonar_mysql_data:
-  sonar_data:
-  sonar_extensions:
-  sonar_logs:
-  jenkins_slave_home:
-  jenkins_home:
-  jenkins_home:
   jenkins_usr:
   registry_certs:
     external: true
-  registry_data:
 
 services:
   elasticsearch:
@@ -42,7 +22,7 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ${VOLUME_MOUNT_DIR}/elasticsearch_data:/usr/share/elasticsearch/data
     deploy:
       replicas: 1
       update_config:
@@ -52,7 +32,7 @@ services:
         condition: any
       placement:
         constraints:
-          - node.role == manager
+          - node.role == worker
 
   logstash:
     image: liatrio/ldop-logstash:0.1.0
@@ -126,8 +106,8 @@ services:
       - "LDAP_USER_ID_ATTRIBUTE=cn"
       - "LDAP_USER_OBJECT_CLASS=inetOrgPerson"
     volumes:
-      - nginx_config:/etc/nginx
-      - nginx_releasenote:/usr/share/nginx/html
+      - ${VOLUME_MOUNT_DIR}/nginx_config:/etc/nginx
+      - ${VOLUME_MOUNT_DIR}/nginx_releasenote:/usr/share/nginx/html
     logging:
       driver: "syslog"
       options:
@@ -161,8 +141,8 @@ services:
       SLAPD_DOMAIN: ${LDAP_DOMAIN}
       SLAPD_FULL_DOMAIN: ${LDAP_FULL_DOMAIN}
     volumes:
-      - ldap_db:/var/lib/ldap
-      - ldap_static:/etc/ldap
+      - ${VOLUME_MOUNT_DIR}/ldap_db:/var/lib/ldap
+      - ${VOLUME_MOUNT_DIR}/ldap_static:/etc/ldap
     logging:
       driver: "syslog"
       options:
@@ -191,7 +171,7 @@ services:
       MYSQL_PASSWORD: ${GERRIT_MYSQL_PASSWORD}
       MYSQL_DATABASE: ${GERRIT_MYSQL_DATABASE}
     volumes:
-      - gerrit_mysql_data:/var/lib/mysql
+      - ${VOLUME_MOUNT_DIR}/gerrit_mysql_data:/var/lib/mysql
     logging:
       driver: "syslog"
       options:
@@ -301,7 +281,7 @@ services:
       RABBITMQ_HOST: sensu-rabbitmq
       REDIS_HOST: sensu-redis
     volumes:
-      - sensu_api_conf:/etc/sensu/conf.d
+      - ${VOLUME_MOUNT_DIR}/sensu_api_conf:/etc/sensu/conf.d
     logging:
       driver: "syslog"
       options:
@@ -331,8 +311,8 @@ services:
       REDIS_HOST: sensu-redis
       TRANSPORT_NAME: rabbitmq
     volumes:
-      - sensu_server_conf:/etc/sensu/conf.d
-      - sensu_server_check:/etc/sensu/check.d
+      - ${VOLUME_MOUNT_DIR}/sensu_server_conf:/etc/sensu/conf.d
+      - ${VOLUME_MOUNT_DIR}/sensu_server_check:/etc/sensu/check.d
     logging:
       driver: "syslog"
       options:
@@ -364,7 +344,7 @@ services:
       JENKINS_PREFIX: jenkins
       CLIENT_SUBSCRIPTIONS: "${SENSU_CLIENT_SUBSCRIPTIONS}"
     volumes:
-      - sensu_client_conf:/etc/sensu/conf.d
+      - ${VOLUME_MOUNT_DIR}/sensu_client_conf:/etc/sensu/conf.d
     logging:
       driver: "syslog"
       options:
@@ -396,7 +376,7 @@ services:
       JENKINS_PREFIX: jenkins
       CLIENT_SUBSCRIPTIONS: "basic"
     volumes:
-      - sensu_client_conf:/etc/sensu/conf.d
+      - ${VOLUME_MOUNT_DIR}/sensu_client_conf:/etc/sensu/conf.d
     logging:
       driver: "syslog"
       options:
@@ -417,7 +397,7 @@ services:
       - "logstash"
       - "kibana"
     volumes:
-      - sensu_rabbitmq_data:/var/lib/rabbitmq
+      - ${VOLUME_MOUNT_DIR}/sensu_rabbitmq_data:/var/lib/rabbitmq
     logging:
       driver: "syslog"
       options:
@@ -441,7 +421,7 @@ services:
       - "logstash"
       - "kibana"
     volumes:
-      - sensu_redis_data:/data
+      - ${VOLUME_MOUNT_DIR}/sensu_redis_data:/data
     logging:
       driver: "syslog"
       options:
@@ -470,7 +450,7 @@ services:
       MYSQL_PASSWORD: ${SONAR_MYSQL_PASSWORD}
       MYSQL_DATABASE: ${SONAR_MYSQL_DATABASE}
     volumes:
-      - sonar_mysql_data:/var/lib/mysql
+      - ${VOLUME_MOUNT_DIR}/sonar_mysql_data:/var/lib/mysql
     logging:
       driver: "syslog"
       options:
@@ -509,9 +489,9 @@ services:
       - "LDAP_GROUP_ID_ATTRIBUTE=cn"
       - "SONARQUBE_JDBC_URL=jdbc:mysql://sonar-mysql:3306/${SONAR_MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&rewriteBatchedStatements=true"
     volumes:
-      - sonar_data:/opt/sonarqube/data
-      - sonar_extensions:/opt/sonarqube/extensions
-      - sonar_logs:/opt/sonarqube/logs
+      - ${VOLUME_MOUNT_DIR}/sonar_data:/opt/sonarqube/data
+      - ${VOLUME_MOUNT_DIR}/sonar_extensions:/opt/sonarqube/extensions
+      - ${VOLUME_MOUNT_DIR}/sonar_logs:/opt/sonarqube/logs
     logging:
       driver: "syslog"
       options:
@@ -583,7 +563,7 @@ services:
       CARTRIDGE_SOURCES: ${CARTRIDGE_SOURCES}
       LDOP_NETWORK_NAME: ${CUSTOM_NETWORK_NAME}
     volumes:
-      - jenkins_home:/var/jenkins_home
+      - ${VOLUME_MOUNT_DIR}/jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - jenkins_usr:/etc
     logging:
@@ -600,7 +580,7 @@ services:
         condition: any
       placement:
         constraints:
-          - node.role == worker
+          - node.role == manager
 
   jenkins-slave:
     image: liatrio/ldop-jenkins-slave:0.1.5
@@ -658,7 +638,7 @@ services:
       CARTRIDGE_SOURCES: ${CARTRIDGE_SOURCES}
       LDOP_NETWORK_NAME: ${CUSTOM_NETWORK_NAME}
     volumes:
-      - jenkins_slave_home:/workspace
+      - ${VOLUME_MOUNT_DIR}/jenkins_slave_home:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
     logging:
       driver: "syslog"
@@ -809,7 +789,7 @@ services:
       REGISTRY_HTTP_TLS_KEY: /certs/registry/privkey.pem
     volumes:
       - registry_certs:/certs
-      - registry_data:/data
+      - ${VOLUME_MOUNT_DIR}/registry_data:/data
     logging:
       driver: "syslog"
       options:

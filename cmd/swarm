@@ -35,10 +35,37 @@ prep_env() {
   source ${CLI_DIR}/swarm.env.sh
 }
 
-create_volume_and_network() {
-	docker volume create $REGISTRY_CERT_VOL
+# Creates directories for volumes bind-mounted to host fs
+create_bind_volume_dirs() {
+  bind_volumes=(
+    elasticsearch_data
+    nginx_config
+    nginx_releasenote
+    ldap_db
+    ldap_static
+    gerrit_mysql_data
+    git_repos
+    gerrit_review_site
+    sensu_api_conf
+    sensu_server_conf
+    sensu_server_check
+    sensu_client_conf
+    sensu_rabbitmq_data
+    sensu_redis_data
+    sonar_mysql_data
+    sonar_data
+    sonar_extensions
+    sonar_logs
+    jenkins_slave_home
+    jenkins_home
+    jenkins_home
+    jenkins_usr
+    registry_data
+  )
 
-	docker network create --attachable -d overlay ${CUSTOM_NETWORK_NAME}
+  for v in ${bind_volumes[@]}; do
+    mkdir -p ${VOLUME_MOUNT_DIR}/$v
+  done
 }
                                           
 init() {
@@ -61,12 +88,14 @@ init() {
 
   set +e
 
-  create_volume_and_network
+  docker network create --attachable -d overlay ${CUSTOM_NETWORK_NAME}
+  docker volume create $REGISTRY_CERT_VOL
+  create_bind_volume_dirs
 
   set -e
 
 	# Launches a busybox to mount volumes to simplify the process of adding extensions. The mounted volumes are forced to exist, and the needed directories are created. This action is idempotent.
-	export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
+#	export CONTAINER_ID=$(docker run -v "${PROJECT_NAME}_nginx_config:/nginx" -v "${PROJECT_NAME}_nginx_releasenote:/nginx_release" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "mkdir -p /nginx/sites-enabled/service-extension; mkdir -p /nginx_release/img;" && docker ps -l -q)
 
   #pull ldop submodules for sensu checks
   #git submodule update --init --recursive
@@ -110,9 +139,9 @@ init() {
 	echo "* Pulling down the Docker images may take a moment..."
 	until [[ $(curl -k -I -s -u ${INITIAL_ADMIN_USER}:${INITIAL_ADMIN_PASSWORD_PLAIN} ${PROTO}://${TARGET_HOST}/|head -n 1|cut -d$' ' -f2) == 200 ]]; do pretty_sleep 5 LDOP Swarm; done
   #Have sensu container copy the extension cheks into base checks volume
-	docker run  -v "${PROJECT_NAME}_sensu_server_check:/sensu" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "cp -r /sensu_ext/. /sensu/"
+	#docker run  -v "${PROJECT_NAME}_sensu_server_check:/sensu" -v "${PROJECT_NAME}_sensu_server_check_ext:/sensu_ext" busybox sh -c "cp -r /sensu_ext/. /sensu/"
  
-  docker service update --force ${PROJECT_NAME}_sensu-server
+  #docker service update --force ${PROJECT_NAME}_sensu-server
 
 	for ext in ${EXTENSIONS}; do
           integrations_dir="${CLI_DIR}/extensions/$ext/integrations"
@@ -134,7 +163,7 @@ init() {
 	done
 
 	# Removes the busybox container.
-	docker rm ${CONTAINER_ID}
+	#docker rm ${CONTAINER_ID}
 }
 
 down() {

@@ -25,4 +25,4 @@ export PROJECT_NAME="ldop"
 source ${CLI_DIR}/env.config.sh
 source ${CLI_DIR}/conf/env.provider.sh
 
-export EXTENSIONS="nexus"
+export VOLUME_MOUNT_DIR="/mnt/efs"
