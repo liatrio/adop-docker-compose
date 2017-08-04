@@ -15,21 +15,16 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 
 ## Why We Forked
 
-Forking ADOP to develop our own platform provided a number of valuable opportunities to the engineers at Liatrio. This fork allowed us to:
-
-* Get a head start on developing our DevOps platform.
-* Pursue a different set of goals that aligns more closely with our customers needs.
-* Maintain a rapid pace of development as well as a fast feedback loop within our company. 
-
-These opportunities allow us to develop a product not only for us, but for the open source community as well.
-
-### Primary Achievements Of LDOP
-
 * Version Upgrades
-  * The original fork of this platform utilized version 1 docker-compose. Since becoming LDOP, the platform has been upgraded to version 3 docker-compose. This upgrade in versioning provides [many benefits](https://docs.docker.com/compose/compose-file/compose-versioning/#versioning), one of which is cross-compatability with Docker engine and Docker swarm. 
+  * Numerous updates to Docker capabilities since ADOP's inception have allowed LDOP to support different use cases, such as: 
+    * Native Docker engine on OS X, Linux and Windows machines
+    * The original fork of this platform utilized version 1 docker-compose. Since becoming LDOP, the platform has been upgraded to version 3 docker-compose. This upgrade in versioning provides [many benefits](https://docs.docker.com/compose/compose-file/compose-versioning/#versioning), one of which is cross-compatability with Docker engine and Docker swarm. 
+  * Upgraded to Jenkins release version 2.0 to support use of Jenkinsfiles for custom pipelines. 
 
-* Tool Differences
-  * LDOP uses the concept of extensions to broaden the horizon of the platform. Extensions are services that are used to fill certain roles within LDOP, and can typically be used interchangeably. An example of this feature is the ability to switch between Nexus and Artifactory at launch as the employed artifact repository.
+* Platform Differences
+  * LDOP expanded ADOP's implementation of extensions to broaden the horizon of the platform. Extensions are services that are used to fill certain roles within LDOP, and can typically be used interchangeably. An example of this feature is the ability to switch between Nexus and Artifactory at launch as the employed artifact repository.
+  * Expanded CLI commands to supporting CI testing for the platform as well Jenkins jobs.
+  * Streamlined CLI for launching LDOP across different environments.
 
 * Expanded AMPRS Characteristics for Enterprise Use Cases
   * AMPRS (availability, manageability, performance, recoverability, scalability) have been key points of focus during the development of this platform. While LDOP can be run on a single machine to perform local CI with software projects, its architecture combined with compatability with container orchestration technologies enables high performance and scalability. 
