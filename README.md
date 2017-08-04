@@ -12,9 +12,9 @@ The DevOps Platform is a tools environment for continuously testing, releasing a
 
 The platform runs anywhere that [docker engine runs](https://docs.docker.com/engine/installation/binaries/), allowing for local evaluation using local storage. The platform is also capable of being stood up on a Docker swarm cluster; built in commands will toss the entire LDOP stack (including extensions) onto a swarm.
 
-The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) (LDOP) is [Liatrio](https://liatrio.com/)'s adaptation of Accenture's platform, [ADOP](https://github.com/Accenture/adop-docker-compose), for use with our customers.
+The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is [Liatrio](https://liatrio.com/)'s adaptation of Accenture's platform, [ADOP](https://github.com/Accenture/adop-docker-compose), for use with our customers.
 
-## What's the Difference between LDOP and ADOP?
+## What's The Difference Between LDOP and ADOP?
 
 ### Primary Differences
 
@@ -24,13 +24,9 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) (L
 * Tool Differences
 * Expanded AMPRS Characteristics for Enterprise Use Cases
 
-### LDOP Dashboard
-
-![HomePage](https://github.com/liatrio/ldop-docker-compose/blob/master/img/home.png)
-
 ### LDOP Stack
 
-####Primary
+######**Primary Services**
 
 * **ElasticSearch** - GitHub - [DockerHub](https://hub.docker.com/_/elasticsearch/)
 * **Gerrit** - [GitHub](https://github.com/liatrio/ldop-gerrit) - [DockerHub](https://hub.docker.com/r/liatrio/ldop-gerrit/)
@@ -56,12 +52,14 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) (L
 * **Sonar** - [GitHub](https://github.com/liatrio/ldop-sonar) - [DockerHub](https://hub.docker.com/r/liatrio/ldop-sonar/)
 * **Sonar MySQL** - GitHub - [DockerHub](https://hub.docker.com/_/mysql/)
 
-####Extensions
+######**Extension Services**
 
 * **Artifactory** - GitHub - [DockerHub](https://hub.docker.com/r/liatrio/ldop-artifactory/)
 * **Nexus** - [GitHub](https://github.com/liatrio/ldop-nexus) - [DockerHub](https://hub.docker.com/r/liatrio/ldop-nexus/)
 
 ### LDOP Dashboard
+
+![HomePage](https://github.com/liatrio/ldop-docker-compose/blob/master/img/home.png)
 
 Once you have a stack up and running, you can log in with the username and password created upon start-up. If you no longer remember your login credentials, you can find them in the project root directory file called *platform.secrets.sh*.
 
@@ -75,9 +73,9 @@ This platform can be run anywhere that a Docker engine is installed, and can als
 
 Ensure that you have [docker-compose](https://docs.docker.com/compose/install/) installed before attempting to run LDOP locally.
 
-### To run locally
+### To Run Locally
 
-Running LDOP locally can be done on a Docker engine, or using docker-machine; there are only a couple extra steps required to run the platform on a machine. If you want to deploy the stack directly onto the Docker engine skip the next to steps. Otherwise,
+Running LDOP locally can be done on a Docker engine, or using docker-machine; there are only a couple extra steps required to run the platform on a machine. If you want to deploy the stack directly onto the Docker engine skip the next two steps. Otherwise,
 
 - Create a local Docker VM
 ```
@@ -99,7 +97,7 @@ ldop compose init
 
 **Warning:** you will need to run both commands for docker-machine and aws due to certbot and environment variable issues
 
-### To run in AWS (single instance) manually
+### To Run In AWS (Single Instance) Manually
 
 - In order to run LDOP in an AWS instance using the following steps, an [IAM role needs to be configured](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create.html). This role needs access to EC2 so that it can launch the instance that will run LDOP.
 
@@ -131,7 +129,7 @@ eval $(docker-machine env <YOUR_MACHINE_NAME>)
 Any Docker commands you run will now be ran on the AWS instance.
 
 
-### To run with Docker swarm
+### To Run With Docker Swarm
 
 To extend availability and scalability, Docker swarm functionality was added into LDOP. The platform can be run on any swarm, regardless of the underlying nodes. If the swarm nodes have any network restrictions, such as AWS security groups, there are a few port requirements.
 
@@ -153,7 +151,25 @@ Once the above requirements are met, deploying to a swarm is similar to deployin
 ldop swarm init
 ```
 
-## Using the platform
+## Using The Platform
+
+###### Fresh Start
+
+Sometimes you will want to get a *fresh start* with LDOP; i.e. removing volumes, credentials, etc. Regardless of whether or not LDOP is currently running, the following commands will get you a clean slate.
+
+To bring the platform down, as well as ensure that volumes are destroyed.
+```
+ldop compose down --volumes
+```
+**Warning:** This does not delete the registry volume. If you also want to delete this volume, which is not typically required, run *docker volume rm registry_certs*.
+
+Next, you will want to regenerate your login credentials. If you are using *ldop compose*, you can skip this command.
+```
+rm platform.secrets.sh
+./credentials.generate.sh
+```
+
+You are now ready to run LDOP with a fresh start.
 
 ###### Regenerate SSL certificates
 
@@ -163,7 +179,7 @@ To regenerate SSL certificates to allow the Jenkins service to access the Docker
 source ./conf/env.provider.sh
 source credentials.generate.sh
 source env.config.sh
-ldop compose gen-certs ${DOCKER\_CLIENT\_CERT\_PATH}
+ldop compose gen-certs ${DOCKER_CLIENT_CERT_PATH}
 ```
 
 Note: For Windows run this command from a terminal (Git Bash) as administrator.
@@ -183,12 +199,9 @@ Kibana 4 does not provide a configuration property that allow to define the defa
 Documentation can be found on our [GitHub page](https://github.com/liatrio/ldop-docker-compose).
 
 ### Issues
-If you have any problems with or questions about this project, please contact us through [Gitter](https://gitter.im/Accenture/ADOP) or a [GitHub issue](https://github.com/Accenture/adop-docker-compose/issues).
+If you have any problems with or questions about this project, please contact us through [Gitter](https://gitter.im/liatrio/LDOP) or a [GitHub issue](https://github.com/liatrio/ldop-docker-compose/issues).
 
 ### Contribute
-You are invited to contribute new features, fixes, or updates, large or small; we are always thrilled to receive pull requests, and do our best to process them as fast as we can. You can find more information in our [documentation](http://accenture.github.io/adop-docker-compose/docs/contributing/).
+You are invited to contribute new features, fixes, or updates, large or small; we are always thrilled to receive pull requests, and do our best to process them as fast as we can. You can find more information in our [documentation](https://github.com/liatrio/ldop-docker-compose/wiki).
 
-Before you start to code, we recommend discussing your plans through a [GitHub issue](https://github.com/Accenture/adop-docker-compose/issues), especially for more ambitious contributions. This gives other contributors a chance to point you in the right direction, give you feedback on your design, and help you find out if someone else is working on the same thing.
-
-## Roadmap
-We use this working [Roadmap](https://github.com/Accenture/adop-docker-compose/wiki/Roadmap) to evolve and summarise plans for future features and the merge of existing PRs.
+Before you start to code, we recommend discussing your plans through a [GitHub issue](https://github.com/liatrio/ldop-docker-compose/issues), especially for more ambitious contributions. This gives other contributors a chance to point you in the right direction, give you feedback on your design, and help you find out if someone else is working on the same thing.
