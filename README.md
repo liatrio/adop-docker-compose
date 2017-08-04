@@ -1,6 +1,5 @@
 # The DevOps Platform: Overview
 
-
 The DevOps Platform is a tools environment for continuously testing, releasing and maintaining applications. This platform is capable of performing CICD on a variety of projects; each of the projects listed below have specific traits that are common in the industry, such as a RESTful api or a unique set of Maven build steps.
 
 * [Spring PetClinic](https://github.com/liatrio/spring-petclinic)
@@ -14,19 +13,30 @@ The platform runs anywhere that [docker engine runs](https://docs.docker.com/eng
 
 The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is [Liatrio](https://liatrio.com/)'s adaptation of Accenture's platform, [ADOP](https://github.com/Accenture/adop-docker-compose), for use with our customers.
 
-## What's The Difference Between LDOP and ADOP?
+## Why We Forked
 
-### Primary Differences
+Forking ADOP to develop our own platform provided a number of valuable opportunities to the engineers at Liatrio. This fork allowed us to:
+
+* Get a head start on developing our DevOps platform.
+* Pursue a different set of goals that aligns more closely with our customers needs.
+* Maintain a rapid pace of development as well as a fast feedback loop within our company. 
+
+These opportunities allow us to develop a product not only for us, but for the open source community as well.
+
+### Primary Achievements Of LDOP
 
 * Version Upgrades
   * The original fork of this platform utilized version 1 docker-compose. Since becoming LDOP, the platform has been upgraded to version 3 docker-compose. This upgrade in versioning provides [many benefits](https://docs.docker.com/compose/compose-file/compose-versioning/#versioning), one of which is cross-compatability with Docker engine and Docker swarm. 
 
 * Tool Differences
+  * LDOP uses the concept of extensions to broaden the horizon of the platform. Extensions are services that are used to fill certain roles within LDOP, and can typically be used interchangeably. An example of this feature is the ability to switch between Nexus and Artifactory at launch as the employed artifact repository.
+
 * Expanded AMPRS Characteristics for Enterprise Use Cases
+  * AMPRS (availability, manageability, performance, recoverability, scalability) have been key points of focus during the development of this platform. While LDOP can be run on a single machine to perform local CI with software projects, its architecture combined with compatability with container orchestration technologies enables high performance and scalability. 
 
 ### LDOP Stack
 
-######**Primary Services**
+###### **Primary Services**
 
 * **ElasticSearch** - GitHub - [DockerHub](https://hub.docker.com/_/elasticsearch/)
 * **Gerrit** - [GitHub](https://github.com/liatrio/ldop-gerrit) - [DockerHub](https://hub.docker.com/r/liatrio/ldop-gerrit/)
@@ -52,7 +62,7 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 * **Sonar** - [GitHub](https://github.com/liatrio/ldop-sonar) - [DockerHub](https://hub.docker.com/r/liatrio/ldop-sonar/)
 * **Sonar MySQL** - GitHub - [DockerHub](https://hub.docker.com/_/mysql/)
 
-######**Extension Services**
+###### **Extension Services**
 
 * **Artifactory** - GitHub - [DockerHub](https://hub.docker.com/r/liatrio/ldop-artifactory/)
 * **Nexus** - [GitHub](https://github.com/liatrio/ldop-nexus) - [DockerHub](https://hub.docker.com/r/liatrio/ldop-nexus/)
@@ -184,7 +194,7 @@ ldop compose gen-certs ${DOCKER_CLIENT_CERT_PATH}
 
 Note: For Windows run this command from a terminal (Git Bash) as administrator.
 
-### Define Default Elastic Search Index Pattern
+###### Define Default Elastic Search Index Pattern
 
 Kibana 4 does not provide a configuration property that allow to define the default index pattern so the following manual procedure should be adopted in order to define an index pattern:
 
