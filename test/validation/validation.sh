@@ -7,7 +7,7 @@
 # - Extension declaration in env.config.sh
 
 main() {
-  echo "---------------------Validation-------------------"
+  echo "-------------------------------Validation------------------------------"
   env_config_validation
 
   # validate extension folder structure
@@ -23,7 +23,7 @@ main() {
 
 env_config_validation() {
   # Check extensions line for space delimited list
-  echo -n "Checking env.config.sh for extensions: "
+  echo -ne "\nChecking env.config.sh for extensions: "
   ext_line=$(cat env.config.sh | grep EXTENSIONS)
   if [[ "$ext_line" =~ ^(export EXTENSIONS=\")([A-Za-z]+ ?)*(\")$ ]]; then
     echo success 
@@ -42,23 +42,23 @@ validate_extension_architecture() {
 
   # Check for docker-compose 
   echo -n "  docker-compose.yml exist: "
-  if [ ! -f $dir/docker-compose.yml ]; then
+  if [ -f $dir/docker-compose.yml ]; then
+    echo success
+  else
     echo "docker-compose missing; exit failure."
     exit 1
-  else
-   echo success
   fi
 
   # Check for required integrations
   integrations=(proxy sensu)
   echo "  integrations structure"
   for inte in ${integrations[@]}; do
-    echo -ne "    $inte exist: "
-    if [ -z $(ls $dir/integrations | grep $inte) ]; then
-      echo "missing $inte for $dir; exiting as failure, try again"
-      exit 1
+    echo -ne "    $inte: "
+    if [ -d ${dir}integrations/${inte} ]; then
+      echo exists
     else 
-      echo success
+      echo "missing $inte for $dir; exiting failure"
+      exit 1
     fi
     
     # call specific integration validation
@@ -75,31 +75,77 @@ validate_extension_architecture() {
 
 
 
-
 # Checks the extension's proxy integration's file structure.
 proxy_inegration_validation() {
+  proxy_path="${dir}integrations/proxy"
   proxy_dirs=(release-note sites-enabled)
-  echo -e "    proxy file structure validation"
+  ext_name=${dir%/}
 
   # Check release-note
-  echo -ne "      release-note exists: "
-  if [ -n $(ls $dir/integrations/proxy/ | grep release-note) ]; then
-    echo "success"
+  echo -ne "      release-note/: "
+  if [ -d $proxy_path/release-note ]; then
+    echo "exist"
   else
-    echo "failed: release-note doesn't exist. fix and try again; exiting..."
-    exit 1
-  fi
-  echo -e "      checking release-note:"
-  
-  # Check for sites-enabled 
-  echo -ne "      sites-enabled exists: "
-  if [ -n $(ls $dir/integrations/proxy/ | grep site-enabled)  ]; then
-    echo "success"
-  else
-    echo "failed: sites-enabled doesn't exist. fix and try again; exiting..."
+    echo "failed: release-note/ doesn't exist. exiting failure"
     exit 1
   fi
 
+  #Check release-note contents
+  # release-note/img directory for nginx home page picture
+  echo -ne "        img/: "
+  if [ -d $proxy_path/release-note/img ]; then
+    echo exist
+  else
+    echo "failed: img/ doesn't exist. exiting failure"
+    exit 1
+  fi
+
+  # img contains at least on image
+  img_name="${ext_name}.png"
+  echo -ne "          $img_name: "
+  if [ -f $proxy_path/release-note/img/$img_name ]; then
+    echo exist
+  else
+    echo "failed: $img_name doesn't exist. exiting failure"
+    exit 1
+  fi
+
+  # check for release-note/plugins.json
+  echo -ne "        plugins.json: "
+  if [ -f $proxy_path/release-note/plugins.json ]; then
+    echo exists
+  else 
+    echo "failed: plugins.json doesn't exist. exiting failure"
+    exit 1
+  fi
+
+  # Check for sites-enabled 
+  echo -ne "      sites-enabled/: "
+  if [ -d $proxy_path/sites-enabled ]; then
+    echo "exists"
+  else
+    echo "failed: sites-enabled/ doesn't exist; exiting failure"
+    exit 1
+  fi
+
+  # Check for service-extension/ 
+  echo -n "        service-extensions/: "
+  if [ -d $proxy_path/sites-enabled/service-extension ]; then
+    echo exists 
+  else
+    echo "failed: service-extensions/ doesn't exist; exiting failure"
+    exit 1
+  fi
+
+  # check for extension nginx config
+  conf_name="${ext_name}.conf"
+  echo -n "          $conf_name: "
+  if [[ -f $proxy_path/sites-enabled/service-extension/$conf_name ]]; then
+    echo exists
+  else
+    echo "failed: $conf_name doesn't exist; exiting failure"
+    exit 1
+  fi
 }
 
 
