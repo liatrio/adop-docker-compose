@@ -53,7 +53,7 @@ validate_extension_architecture() {
   integrations=(proxy sensu)
   echo "  integrations structure"
   for inte in ${integrations[@]}; do
-    echo -ne "    $inte: "
+    echo -ne "    $inte/: "
     if [ -d ${dir}integrations/${inte} ]; then
       echo exists
     else 
@@ -70,7 +70,7 @@ validate_extension_architecture() {
     fi
   done
 
-  echo -e "  $dir folder structure correct\n"
+  echo -e "$dir folder structure correct\n"
 }
 
 
@@ -148,6 +148,31 @@ proxy_inegration_validation() {
   fi
 }
 
+
+
+sensu_inegration_verification() {
+  sensu_path="${dir}integrations/sensu"
+  ext_name=${dir%/}
+
+  # check for check.d in sensu integration
+  echo -ne "      check.d/: "
+  if [ -d  ${sensu_path}/check.d ]; then
+    echo exist
+  else
+    echo "failed: check.d/ doesn't exist. exiting failure"
+    exit 1
+  fi
+
+  # check for check_HTTP_<extn>.json
+  echo -ne "        check_HTTP_${ext_name}.json: "
+  if [ -f  ${sensu_path}/check.d/check_HTTP_${ext_name}.json ]; then
+    echo exist
+  else
+    echo "failed: check_HTTP_${ext_name}.json/ doesn't exist. exiting failure"
+    exit 1
+  fi
+
+}
 
 # Run the script - this effectively allows forward declaration
 main "$@"
