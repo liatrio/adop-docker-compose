@@ -86,7 +86,6 @@ prep_env() {
         export LOGSTASH_HOST=localhost
     fi
 
-    source ${CONF_DIR}/conf/env.provider.sh
     source ${CONF_DIR}/credentials.generate.sh
     source ${CONF_DIR}/env.config.sh
 
@@ -288,7 +287,6 @@ init() {
     echo "SUCCESS, your new LDOP instance is ready!"
     echo
     echo "Run these commands in your shell:"
-    echo '  source ./conf/env.provider.sh'
     echo '  source credentials.generate.sh'
     echo '  source env.config.sh'
     echo

@@ -23,6 +23,5 @@ export PROJECT_NAME="ldop"
 
 #provider specific environment files
 source ${CLI_DIR}/env.config.sh
-source ${CLI_DIR}/conf/env.provider.sh
 
 export EXTENSIONS="nexus"
