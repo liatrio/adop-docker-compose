@@ -23,7 +23,7 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 
 * Platform Differences
   * LDOP expanded ADOP's implementation of extensions to broaden the horizon of the platform. Extensions are services that are used to fill certain roles within LDOP, and can typically be used interchangeably. An example of this feature is the ability to switch between Nexus and Artifactory at launch as the employed artifact repository.
-  * Expanded CLI commands to supporting CI testing for the platform as well Jenkins jobs.
+  * Expanded CLI commands to support CI testing for the platform as well Jenkins jobs.
   * Streamlined CLI for launching LDOP across different environments.
 
 * Expanded AMPRS Characteristics for Enterprise Use Cases
