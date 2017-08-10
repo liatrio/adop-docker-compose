@@ -529,7 +529,7 @@ services:
           - node.role == manager
 
   jenkins:
-    image: liatrio/ldop-jenkins:2.1.10
+    image: liatrio/ldop-jenkins:2.2.5
     depends_on:
       - "elasticsearch"
       - "logstash"
