@@ -196,7 +196,6 @@ print_statuses() {
 test_job () {
   echo ' Testing Job '$1
   # Sources to obtain the password for Jenkins
-  source ${CONF_DIR}/conf/env.provider.sh
   source ${CONF_DIR}/credentials.generate.sh
   source ${CONF_DIR}/env.config.sh
   # The URL of the job $1 as hit from within the Jenkins container
