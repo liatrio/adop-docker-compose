@@ -488,3 +488,13 @@ services:
       REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
       REGISTRY_HTTP_TLS_CERTIFICATE: /certs/registry/fullchain.pem
       REGISTRY_HTTP_TLS_KEY: /certs/registry/privkey.pem
+
+  traefik:
+    container_name: traefik
+    command: -c /dev/null --web --docker --docker.domain=docker.localhost --logLevel=DEBUG
+    image: traefik
+    ports:
+      - "3000:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
