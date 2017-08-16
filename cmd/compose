@@ -9,6 +9,9 @@ cmd_desc() {
 cmd_usage() {
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} [<options>] <subcommand>"
     echo "Options:"
+    printf "    %-12s   %s\n" "-u <username>" "set the initial admin username"
+    printf "    %-12s   %s\n" "-p <password>" "set the initial admin password"
+    printf "    %-12s   %s\n" "-n <name>" "set the project name for the LDOP stack"
     printf "    %-12s   %s\n" "-m <name>" "The name of the Docker Machine to target"
     printf "    %-12s   %s\n" "-f <path>" "Additional override file for Docker Compose, can be specified more than once"
     printf "    %-12s   %s\n" "-F <path>" "File to use for Docker Compose (in place of default), can be specified more than once"
@@ -23,6 +26,8 @@ help() {
     echo
     echo "Available subcommands are:"
     printf "    %-22s   %s\n" "init" "Initialises LDOP"
+    printf "    %-22s   %s\n" "init <--without-pull>" "Initialises LDOP without pulling images"
+    printf "    %-22s   %s\n" "init <--without-pull>" "Initialises LDOP without pulling images"
     printf "    %-22s   %s\n" "init <--without-pull>" "Initialises LDOP without pulling images"
     printf "    %-22s   %s\n" "init <--with-stdout>" "Initialises LDOP with logs being sent to stdout as opposed to specified logging driver"
     printf "    %-22s   %s\n" "up" "docker-compose up for LDOP"
@@ -42,7 +47,6 @@ pretty_sleep() {
     done
     echo "$tool was unavailable, so slept for: ${1:-60} secs"
 }
-
 
 prep_env() {
     #if the MACHINE_NAME is unset, but your environment specifies a docker-machine is being used
@@ -182,7 +186,6 @@ load_extensions () {
 }
 
 init() {
-
     while [[ $1 ]]; do
         case "$1" in
             --without-pull)
@@ -421,9 +424,10 @@ export TOTAL_OVERRIDES=""
 export PULL="YES"
 export MACHINE_NAME=""
 export PROJECT_NAME="ldopdockercompose"
+NEW_CERTS=false
 
 # Parameters
-while getopts "m:f:F:v:l:n:i:p:" opt; do
+while getopts "m:f:F:v:l:n:i:u:p:n:" opt; do
   case $opt in
     m)
       export MACHINE_NAME=${OPTARG}
@@ -446,7 +450,15 @@ while getopts "m:f:F:v:l:n:i:p:" opt; do
     i)
       export PROXY_IP="${OPTARG}"
       ;;
+    u)
+      export INITIAL_ADMIN_USER="${OPTARG}"
+      NEW_CERTS=true
+      ;;
     p)
+      export INITIAL_ADMIN_PASSWORD_PLAIN="${OPTARG}"
+      NEW_CERTS=true
+      ;;
+    n)
       export PROJECT_NAME="${OPTARG}"
       ;;
     *)
@@ -456,6 +468,11 @@ while getopts "m:f:F:v:l:n:i:p:" opt; do
       ;;
   esac
 done
+
+
+if [ $NEW_CERTS = true ]; then
+  rm platform.secrets.sh || :
+fi
 
 shift $(($OPTIND -1))
 SUBCOMMAND_OPT="${1:-help}"
