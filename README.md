@@ -108,15 +108,15 @@ docker-machine create <MACHINE_NAME>
 ```
 eval $(docker-machine env <YOUR_MACHINE_NAME>)
 ```
-  3. If this is the first time launching LDOP or if the registry volume was deleted, run as `sudo`. :eight_spoked_asterisk:
+  3. If this is the first time launching LDOP or if the registry volume was deleted, run as `sudo`.*
 ```
 sudo ldop compose init
 ```
-  4. Initialize LDOP
+  4. Launch LDOP.
 ```
 ldop compose init
 ```
-:eight_spoked_asterisk: The command _sudo ldop compose init_ will need to be ran in order to create necessary certifications. This command will need to be followed with _ldop compose init_ to be ran due to limitations of running _docker-compose_ as sudo.
+*The command _sudo ldop compose init_ will need to be ran in order to create necessary certifications. This command will need to be followed with _ldop compose init_ to be ran due to limitations of running _docker-compose_ as sudo.
 
 ## <a name="running-on-aws"></a> Running on AWS
 
