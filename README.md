@@ -1,4 +1,16 @@
-###### Overview
+  * [Overview](#overview)
+    * [Why We Forked](#why-we-forked)
+    * [LDOP Stack](#ldop-stack)
+    * [LDOP Dashboard](#ldop-dashboard)
+    * [Example Applications](#ldop-example-applications)
+  * [Development](#development)
+    * [Running Locally](#running-locally)
+    * [Running on AWS](#running-on-aws)
+    * [Running on Docker Swarm](#running-on-docker-swarm)
+    * [Using the Platform](#using-the-platform)
+  * [User Feedback](#user-feedback)
+
+## <a name="overview"></a> Overview
 
 __The DevOps Platform__ is a tools environment for continuously testing, releasing and maintaining applications. This platform is capable of performing CICD on a variety of projects; each of the projects listed below have specific traits that are common in the industry, such as a RESTful api or a unique set of Maven build steps.
 
@@ -8,19 +20,7 @@ The platform runs [anywhere that Docker Engine runs](https://docs.docker.com/eng
 
 The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is [Liatrio's](https://liatrio.com/) adaptation of Accenture's platform, [ADOP](https://github.com/Accenture/adop-docker-compose), for use with our customers.
 
-## Contents
-
-* [Why We Forked](#why-we-forked)
-* [LDOP Stack](#ldop-stack)
-* [LDOP Dashboard](#ldop-dashboard)
-* [Getting Started](#getting-started)
-* [Running Locally](#running-locally)
-* [Running on AWS](#running-on-aws)
-* [Running on Docker Swarm](#running-on-docker-swarm)
-* [Using the Platform](#using-the-platform)
-* [User Feedback](#user-feedback)
-
-## <a name="why-we-forked"></a> Why We Forked
+#### <a name="why-we-forked"></a> Why We Forked
 
 ###### Version Upgrades
   * Numerous updates to Docker capabilities since ADOP's inception have allowed LDOP to support different use cases, such as: 
@@ -36,7 +36,7 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 ###### Expanded AMPRS Characteristics for Enterprise Use Cases
   * AMPRS (availability, manageability, performance, recoverability, scalability) have been key points of focus during the development of this platform. While LDOP can be run on a single machine to perform local CI with software projects, its architecture combined with compatability with container orchestration technologies enables high performance and scalability. 
 
-## <a name="ldop-stack"></a> LDOP Stack
+#### <a name="ldop-stack"></a> LDOP Stack
 
 <details>
 <summary>Primary Services</summary>
@@ -79,11 +79,15 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 
 </details>
 
-## <a name="ldop-dashboard"></a> LDOP Dashboard
+#### <a name="ldop-dashboard"></a> LDOP Dashboard
 
 ![HomePage](img/home.png)
 
-Once you have a stack up and running, you can log in with the username and password created upon start-up. If you no longer remember your login credentials, you can find them in the project root directory file called *platform.secrets.sh*.
+Once you have a stack up and running, you can log in with the username and password created upon start-up.
+
+:information_source: If you no longer remember your login credentials, you can find them in the file called *platform.secrets.sh* in the project's root directory.
+
+#### <a name="example-applications"></a> Example Applications
 
 A seed job that creates jobs for building different example applications is included in the base version of LDOP. These jobs will look into each specified repository for a Jenkinsfile. This file will be used to create a pipeline job on Jenkins, and run the project through each of its phases.
 
@@ -96,13 +100,13 @@ A seed job that creates jobs for building different example applications is incl
 | [Libotrio](https://github.com/liatrio/libotrio) | . |
 | [Spring PetClinic](https://github.com/liatrio/spring-petclinic) | . |
 
-## <a name="getting-started"></a> Getting Started
+## <a name="development"></a> Development
 
 This platform can be run anywhere that a Docker engine is installed, and can also be deployed to a swarm. To begin, we will go over the steps to run LDOP locally.
 
 Ensure that you have [docker-compose](https://docs.docker.com/compose/install/) installed before attempting to run LDOP locally.
 
-## <a name="running-locally"></a> Running Locally
+#### <a name="running-locally"></a> Running Locally
 
 Running LDOP locally can be done on a Docker Engine or by using Docker Machine. There are only a couple more steps required to run the platform on Docker Machine.
 
@@ -125,7 +129,7 @@ ldop compose init
 ```
 *The command _sudo ldop compose init_ will need to be ran in order to create necessary certifications. This command will need to be followed with _ldop compose init_ to be ran due to limitations of running _docker-compose_ as sudo.
 
-## <a name="running-on-aws"></a> Running on AWS
+#### <a name="running-on-aws"></a> Running on AWS
 
 Follow these instructions to run LDOP on Amazon Web Services manually on a single EC2 instance.
 
@@ -159,7 +163,7 @@ eval $(docker-machine env <YOUR_MACHINE_NAME>)
 Any Docker commands you run will now be ran on the AWS instance.
 
 
-## <a name="running-on-docker-swarm"></a> Running on Docker Swarm
+#### <a name="running-on-docker-swarm"></a> Running on Docker Swarm
 
 To extend availability and scalability, Docker swarm functionality was added into LDOP. The platform can be run on any swarm, regardless of the underlying nodes. If the swarm nodes have any network restrictions, such as AWS security groups, there are a few port requirements.
 
@@ -181,7 +185,7 @@ Once the above requirements are met, deploying to a swarm is similar to deployin
 ldop swarm init
 ```
 
-## <a name="using-the-platform"></a> Using the Platform
+#### <a name="using-the-platform"></a> Using the Platform
 
 ###### Getting a Fresh Start
 
