@@ -90,7 +90,7 @@ A seed job that creates jobs for building different example applications is incl
 ![HomePage](img/pipelines.png)
 
 | Application | URL of Deployment |
-|:-------|:------:|:------:|
+|:-------|:------:|
 | [Game of Life](https://github.com/liatrio/game-of-life) | . |
 | [Joda Time](https://github.com/liatrio/joda-time) | . |
 | [Libotrio](https://github.com/liatrio/libotrio) | . |
