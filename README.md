@@ -4,7 +4,7 @@ __The DevOps Platform__ is a tools environment for continuously testing, releasi
 
 [Spring PetClinic](https://github.com/liatrio/spring-petclinic) • [REST Countries](https://github.com/liatrio/restcountries) • [Game of Life](https://github.com/liatrio/game-of-life) • [Dromedary](https://github.com/liatrio/dromedary) • [Joda-time](https://github.com/liatrio/joda-time) • [Hygieia](https://github.com/liatrio/Hygieia)
 
-The platform runs anywhere that [docker engine runs](https://docs.docker.com/engine/installation/binaries/), allowing for local evaluation using local storage. The platform is also capable of being stood up on a Docker Swarm cluster; built in commands will toss the entire LDOP stack (including extensions) onto a swarm.
+The platform runs [anywhere that Docker Engine runs](https://docs.docker.com/engine/installation/binaries/) which allows for local evaluation. The platform, including extensions, is also capable of being stood up on a Docker Swarm cluster using built in commands.
 
 The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is [Liatrio's](https://liatrio.com/) adaptation of Accenture's platform, [ADOP](https://github.com/Accenture/adop-docker-compose), for use with our customers.
 
@@ -38,7 +38,8 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 
 ## <a name="ldop-stack"></a> LDOP Stack
 
-###### Primary Services
+<details>
+<summary>Primary Services</summary>
 
 | Service | GitHub | DockerHub |
 |:-------|:------:|:------:|
@@ -66,12 +67,17 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 | Sonar | [GitHub](https://github.com/liatrio/ldop-sonar) | [DockerHub](https://hub.docker.com/r/liatrio/ldop-sonar/) |
 | Sonar MySQL | / | [DockerHub](https://hub.docker.com/_/mysql/) |
 
-###### Extension Services
+</details>
+
+<details>
+<summary>Extension Services</summary>
 
 | Service | GitHub | DockerHub |
 |:-------|:------:|:------:|
 | Artifactory | / | [DockerHub](https://hub.docker.com/r/liatrio/ldop-artifactory/) |
 | Nexus | [GitHub](https://github.com/liatrio/ldop-nexus) | [DockerHub](https://hub.docker.com/r/liatrio/ldop-nexus/) |
+
+</details>
 
 ## <a name="ldop-dashboard"></a> LDOP Dashboard
 
@@ -91,27 +97,26 @@ Ensure that you have [docker-compose](https://docs.docker.com/compose/install/) 
 
 ## <a name="running-locally"></a> Running Locally
 
-Running LDOP locally can be done on a Docker engine, or using docker-machine; there are only a couple extra steps required to run the platform on a machine. If you want to deploy the stack directly onto the Docker engine skip the next two steps. Otherwise,
+Running LDOP locally can be done on a Docker Engine or by using Docker Machine. There are only a couple more steps required to run the platform on Docker Machine.
 
-- Create a local Docker VM
+:warning: If you want to deploy the stack directly onto a Docker Engine, skip steps one and two.  
+  1.  Create a local Docker VM.
 ```
 docker-machine create <MACHINE_NAME>
 ```
-- And source the machine environment variables
+  2. Source the Docker Machine environment variables. 
 ```
 eval $(docker-machine env <YOUR_MACHINE_NAME>)
 ```
-
-If this is the first time you are launching LDOP or you deleted the registry volume,
+  3. If this is the first time launching LDOP or if the registry volume was deleted, run as `sudo`. :eight_spoked_asterisk:
 ```
 sudo ldop compose init
 ```
-otherwise
+  4. Initialize LDOP
 ```
 ldop compose init
 ```
-
-**Warning:** you will need to run both commands for docker-machine and aws due to certbot and environment variable issues
+:eight_spoked_asterisk: The command _sudo ldop compose init_ will need to be ran in order to create necessary certifications. This command will need to be followed with _ldop compose init_ to be ran due to limitations of running _docker-compose_ as sudo.
 
 ## <a name="running-on-aws"></a> Running on AWS
 
@@ -133,7 +138,7 @@ docker-machine create \
   --engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com <YOUR_MACHINE_NAME>
 ```
 
-**Warning:** The option *--engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com* is necessary for the above command to work due to an issue with Docker updates. This option provides an alternate Docker engine install that works.
+:warning: The option `--engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com` is necessary for the above command to work due to an issue with Docker updates. This option provides an alternate Docker engine install that works.
 
 - Update the AWS security group to permit:
   - Inbound http traffic on port 80 from anywhere, TCP.
