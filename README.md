@@ -1,8 +1,17 @@
+__The DevOps Platform__ is a tools environment for continuously testing, releasing and maintaining applications. This platform is capable of performing CICD on a variety of projects; each of the projects listed below have specific traits that are common in the industry, such as a RESTful api or a unique set of Maven build steps.
+
+[Spring PetClinic](https://github.com/liatrio/spring-petclinic) • [REST Countries](https://github.com/liatrio/restcountries) • [Game of Life](https://github.com/liatrio/game-of-life) • [Dromedary](https://github.com/liatrio/dromedary) • [Joda-time](https://github.com/liatrio/joda-time) • [Hygieia](https://github.com/liatrio/Hygieia)
+
+The platform runs [anywhere that Docker Engine runs](https://docs.docker.com/engine/installation/binaries/) which allows for local evaluation. The platform, including extensions, is also capable of being stood up on a Docker Swarm cluster using built in commands.
+
+The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is [Liatrio's](https://liatrio.com/) adaptation of Accenture's platform, [ADOP](https://github.com/Accenture/adop-docker-compose), for use with our customers.
+
+## Content
   * [Overview](#overview)
     * [Why We Forked](#why-we-forked)
     * [LDOP Stack](#ldop-stack)
     * [LDOP Dashboard](#ldop-dashboard)
-    * [Example Applications](#ldop-example-applications)
+    * [Example Applications](#example-applications)
   * [Development](#development)
     * [Running Locally](#running-locally)
     * [Running on AWS](#running-on-aws)
@@ -11,14 +20,6 @@
   * [User Feedback](#user-feedback)
 
 ## <a name="overview"></a> Overview
-
-__The DevOps Platform__ is a tools environment for continuously testing, releasing and maintaining applications. This platform is capable of performing CICD on a variety of projects; each of the projects listed below have specific traits that are common in the industry, such as a RESTful api or a unique set of Maven build steps.
-
-[Spring PetClinic](https://github.com/liatrio/spring-petclinic) • [REST Countries](https://github.com/liatrio/restcountries) • [Game of Life](https://github.com/liatrio/game-of-life) • [Dromedary](https://github.com/liatrio/dromedary) • [Joda-time](https://github.com/liatrio/joda-time) • [Hygieia](https://github.com/liatrio/Hygieia)
-
-The platform runs [anywhere that Docker Engine runs](https://docs.docker.com/engine/installation/binaries/) which allows for local evaluation. The platform, including extensions, is also capable of being stood up on a Docker Swarm cluster using built in commands.
-
-The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is [Liatrio's](https://liatrio.com/) adaptation of Accenture's platform, [ADOP](https://github.com/Accenture/adop-docker-compose), for use with our customers.
 
 #### <a name="why-we-forked"></a> Why We Forked
 
@@ -83,9 +84,7 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 
 ![HomePage](img/home.png)
 
-Once you have a stack up and running, you can log in with the username and password created upon start-up.
-
-:information_source: If you no longer remember your login credentials, you can find them in the file called *platform.secrets.sh* in the project's root directory.
+Once you have a stack up and running, you can log in with the username and password created upon start-up. If you no longer remember your login credentials, you can find them in the file called *platform.secrets.sh* in the project's root directory.
 
 #### <a name="example-applications"></a> Example Applications
 
@@ -148,8 +147,7 @@ docker-machine create \
   --amazonec2-region <YOUR_AWS_REGION, e.g. eu-west-1> \
   --engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com <YOUR_MACHINE_NAME>
 ```
-
-:information_source: The option `--engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com` is necessary for the above command to work due to an issue with Docker updates. This option provides an alternate Docker engine install that works.
+The option `--engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com` is necessary for the above command to work due to an issue with Docker updates. This option provides an alternate Docker engine install that works.
 
 - Update the AWS security group to permit:
   - Inbound http traffic on port 80 from anywhere, TCP.
@@ -191,11 +189,11 @@ ldop swarm init
 
 Sometimes you will want to get a *fresh start* with LDOP; i.e. removing volumes, credentials, etc. Regardless of whether or not LDOP is currently running, the following commands will get you a clean slate.
 
-To bring the platform down, as well as ensure that volumes are destroyed.
+To bring the platform down, as well as ensure that volumes are destroyed:*
 ```
 ldop compose down --volumes
 ```
-:information_source: This does not delete the registry volume. If you also want to delete this volume, which is not typically required, run *docker volume rm registry_certs*.
+\*This does not delete the registry volume. If you also want to delete this volume, which is not typically required, run *docker volume rm registry_certs*.
 
 Next, you will want to regenerate your login credentials. If you are using *ldop compose*, you can skip this command.
 ```
@@ -207,7 +205,7 @@ You are now ready to run LDOP with a fresh start.
 
 ###### Regenerating SSL certificates
 
-To regenerate SSL certificates to allow the Jenkins service to access the Docker engine, run the following commands.
+To regenerate SSL certificates to allow the Jenkins service to access the Docker engine, run the following commands.*
 
 ```
 source ./conf/env.provider.sh
@@ -216,7 +214,7 @@ source env.config.sh
 ldop compose gen-certs ${DOCKER_CLIENT_CERT_PATH}
 ```
 
-:information_source: For Windows, run this command from a terminal (Git Bash) as administrator.
+*For Windows, run these commands from a terminal (Git Bash) as administrator.
 
 ###### Defining Default Elastic Search Index Pattern
 
