@@ -85,9 +85,16 @@ The [Liatrio DevOps Platform](https://github.com/liatrio/ldop-docker-compose) is
 
 Once you have a stack up and running, you can log in with the username and password created upon start-up. If you no longer remember your login credentials, you can find them in the project root directory file called *platform.secrets.sh*.
 
-An seed job that creates jobs for building different example applications is included in the base version of LDOP. These jobs will look into each specified repository for a Jenkinsfile. This file will be used to create a pipeline job on Jenkins, and run the project through each of its phases.
+A seed job that creates jobs for building different example applications is included in the base version of LDOP. These jobs will look into each specified repository for a Jenkinsfile. This file will be used to create a pipeline job on Jenkins, and run the project through each of its phases.
 
 ![HomePage](img/pipelines.png)
+
+| Application | URL of Deployment |
+|:-------|:------:|:------:|
+| [Game of Life](https://github.com/liatrio/game-of-life) | . |
+| [Joda Time](https://github.com/liatrio/joda-time) | . |
+| [Libotrio](https://github.com/liatrio/libotrio) | . |
+| [Spring PetClinic](https://github.com/liatrio/spring-petclinic) | . |
 
 ## <a name="getting-started"></a> Getting Started
 
@@ -138,7 +145,7 @@ docker-machine create \
   --engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com <YOUR_MACHINE_NAME>
 ```
 
-:warning: The option `--engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com` is necessary for the above command to work due to an issue with Docker updates. This option provides an alternate Docker engine install that works.
+:information_source: The option `--engine-install-url=https://web.archive.org/web/20170623081500/https://get.docker.com` is necessary for the above command to work due to an issue with Docker updates. This option provides an alternate Docker engine install that works.
 
 - Update the AWS security group to permit:
   - Inbound http traffic on port 80 from anywhere, TCP.
@@ -184,7 +191,7 @@ To bring the platform down, as well as ensure that volumes are destroyed.
 ```
 ldop compose down --volumes
 ```
-**Warning:** This does not delete the registry volume. If you also want to delete this volume, which is not typically required, run *docker volume rm registry_certs*.
+:information_source: This does not delete the registry volume. If you also want to delete this volume, which is not typically required, run *docker volume rm registry_certs*.
 
 Next, you will want to regenerate your login credentials. If you are using *ldop compose*, you can skip this command.
 ```
@@ -205,7 +212,7 @@ source env.config.sh
 ldop compose gen-certs ${DOCKER_CLIENT_CERT_PATH}
 ```
 
-Note: For Windows run this command from a terminal (Git Bash) as administrator.
+:information_source: For Windows, run this command from a terminal (Git Bash) as administrator.
 
 ###### Defining Default Elastic Search Index Pattern
 
