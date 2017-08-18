@@ -88,9 +88,12 @@ Once you have a stack up and running, you can log in with the username and passw
 
 #### <a name="example-applications"></a> Example Applications
 
-A seed job that creates jobs for building different example applications is included in the base version of LDOP. These jobs will look into each specified repository for a Jenkinsfile. This file will be used to create a pipeline job on Jenkins, and run the project through each of its phases.
+A seed job, [liatrio-build-seedjob](https://github.com/liatrio/liatrio-build-seedjob), that creates jobs for building different [example applications](https://github.com/liatrio/liatrio-build-seedjob/blob/master/repos.txt) is included in the base version of LDOP. These jobs will look into each specified repository for a Jenkinsfile. This file will be used to create a pipeline job on Jenkins, and run the project through each of its phases.
 
 ![HomePage](img/pipelines.png)
+
+<details>
+<summary>Application Details</summary>
 
 | Application | URL of Deployment |
 |:-------|:------:|
@@ -98,6 +101,8 @@ A seed job that creates jobs for building different example applications is incl
 | [Joda Time](https://github.com/liatrio/joda-time) | . |
 | [Libotrio](https://github.com/liatrio/libotrio) | . |
 | [Spring PetClinic](https://github.com/liatrio/spring-petclinic) | [http://prod.petclinic.docker.localhost:3000/petclinic/](http://prod.petclinic.docker.localhost:3000/petclinic/) |
+
+</details>
 
 ## <a name="development"></a> Development
 
