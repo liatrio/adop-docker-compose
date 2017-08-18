@@ -94,10 +94,10 @@ A seed job that creates jobs for building different example applications is incl
 
 | Application | URL of Deployment |
 |:-------|:------:|
-| [Game of Life](https://github.com/liatrio/game-of-life) | . |
+| [Game of Life](https://github.com/liatrio/game-of-life) | [http://localhost:18894/gameoflife/](http://localhost:18894/gameoflife/) |
 | [Joda Time](https://github.com/liatrio/joda-time) | . |
 | [Libotrio](https://github.com/liatrio/libotrio) | . |
-| [Spring PetClinic](https://github.com/liatrio/spring-petclinic) | . |
+| [Spring PetClinic](https://github.com/liatrio/spring-petclinic) | [http://prod.petclinic.docker.localhost:3000/petclinic/](http://prod.petclinic.docker.localhost:3000/petclinic/) |
 
 ## <a name="development"></a> Development
 
