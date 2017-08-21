@@ -6,6 +6,8 @@ script_dir=$(dirname $0)
 rm -f $script_dir/terraform.key $script_dir/terraform.key.pub
 ssh-keygen -t rsa -N "" -f $script_dir/terraform.key
 
+terraform init $script_dir
+
 timeout 30m terraform apply $script_dir
 EXIT_STATUS=$?
 

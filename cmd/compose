@@ -471,7 +471,7 @@ done
 
 
 if [ $NEW_CERTS = true ]; then
-  rm platform.secrets.sh || :
+  rm -f platform.secrets.sh || :
 fi
 
 shift $(($OPTIND -1))
