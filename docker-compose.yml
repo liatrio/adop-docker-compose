@@ -491,10 +491,11 @@ services:
 
   traefik:
     container_name: traefik
-    command: -c /dev/null --web --docker --docker.domain=docker.localhost --logLevel=DEBUG
-    image: traefik
+    command: --web --docker --docker.domain=docker.localhost --logLevel=DEBUG --docker.exposedbydefault=false
+    image: traefik:1.3-alpine
     ports:
       - "3000:80"
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
+
