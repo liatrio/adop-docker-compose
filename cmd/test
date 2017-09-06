@@ -68,7 +68,7 @@ basic_help() {
     printf "    %-3s   %s\n" "" "-w : Execute init --with-pull."
     printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
     printf "    %-3s   %s\n" "" \
-      "-e : Exit on error if Load_Platform is unsuccessful."
+      "-e : Exit on error if Seedjob is unsuccessful."
     printf "    %-3s   %s\n" "" "-h : Prints this help information."
     echo
 }
@@ -440,7 +440,7 @@ deactivate() {
 
 # Stop running LDOP if activate
 # Start test environment
-# Test Load_Platform job
+# Test the Seedjob job
 # Check statuses of containers
 # Exit test environment
 basic() {
@@ -480,10 +480,8 @@ basic() {
   # Start LDOP with temporary volumes prefixed with test_
   start_with_test_volumes $BASIC_W_FLAG
 
-
-  # Run Load_Platform and store the result in $RESULT globally
-  # test_parameterized_job "Load_Platform"
-  echo "Test basic job TBI for spring-petclinic"
+  # Run Seedjob and store the result in $RESULT globally
+  test_job "seedjob" "false"
 
   # Save the state of non-running containers to output after shut down
   examine_statuses
@@ -501,7 +499,7 @@ basic() {
   # Inform the user that results are to follow
   results_test_text "Basic"
 
-  echo " Load_Platform Build Result: $RESULT"
+  echo " Seedjob Build Result: $RESULT"
   echo " Docker Memory Usage: $MEM%"
 
   # Print the non-running containers prior to shut down
@@ -511,7 +509,7 @@ basic() {
   then
     if [ "$RESULT" != "SUCCESS" ]
     then
-      echo "Error: Load_Platform not successful."
+      echo "Error: Seedjob not successful."
       exit 1
     fi
   fi
