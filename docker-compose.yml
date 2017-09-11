@@ -498,3 +498,16 @@ services:
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
+
+  portainer:
+    container_name: portainer
+    image: portainer/portainer:1.14.0
+    ports:
+      - "9000:9000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=portainer"
+      - "traefik.frontend.rule=Host:portainer.localhost"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+      - "~/.portainer:/data"
