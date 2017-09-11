@@ -499,22 +499,6 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
 
-  scope:
-    container_name: scope
-    image: weaveworks/scope:1.6.1
-    privileged: true
-    ports:
-      - "4040:4040"
-    labels:
-      - "works.weave.role=system"
-      - "traefik.enable=true"
-      - "traefik.backend=scope"
-      - "traefik.frontend.rule=Host:scope.localhost"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:rw"
-    command:
-      - "--probe.docker=true"
-
   portainer:
     container_name: portainer
     image: portainer/portainer:1.14.0
@@ -527,4 +511,3 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
       - "~/.portainer:/data"
-    
