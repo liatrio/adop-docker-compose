@@ -65,7 +65,7 @@ resource "aws_instance" "test_env" {
     ]
   }
 
-  # Clone ldop-docker-compose repo 
+  # Clone ldop-docker-compose repo
   provisioner "remote-exec" {
     connection {
       user        = "ec2-user"
@@ -98,9 +98,8 @@ resource "aws_instance" "test_env" {
 
     inline = [
       "cd ~/ldop-docker-compose",
-      "echo 'test\n' | sudo ./ldop compose init",
-      "./ldop compose down --volumes",
-      "./ldop test basic -f",
+      "echo 'test' | ./credentials.generate.sh",
+      "./ldop test basic",
     ]
   }
 }
