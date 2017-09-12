@@ -65,7 +65,7 @@ basic_help() {
     echo "usage: ${CMD_NAME} ${SUB_CMD_NAME} basic [<options>]"
     echo
     printf "    %-2s   %s\n" "" "Options:"
-    printf "    %-3s   %s\n" "" "-w : Execute init --with-pull."
+    printf "    %-3s   %s\n" "" "-w : Execute init --without-pull."
     printf "    %-3s   %s\n" "" "-f : Force; do not prompt for confirmation."
     printf "    %-3s   %s\n" "" \
       "-e : Exit on error if Seedjob is unsuccessful."
@@ -253,12 +253,12 @@ start_with_test_volumes() {
   echo " ...starting LDOP with temporary volumes..."
   if [ "$1" = false ]
   then
-    echo " Running /ldop compose init --without-pull"
-    ${CONF_DIR}/ldop compose -p testldopdockercompose init --without-pull
-  else
-    echo "...-w flag specified; omitting without-pull..."
-    echo " Running /ldop compose init"
+    echo " Running /ldop compose init "
     ${CONF_DIR}/ldop compose -p testldopdockercompose init
+  else
+    echo "...-w flag specified; running init --without-pull..."
+    echo " Running /ldop compose init"
+    ${CONF_DIR}/ldop compose -p testldopdockercompose init --without-pull
   fi
   echo '##########################################################'
 }
