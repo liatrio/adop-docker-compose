@@ -98,7 +98,7 @@ resource "aws_instance" "test_env" {
 
     inline = [
       "cd ~/ldop-docker-compose",
-      "echo 'test' | ./credentials.generate.sh",
+      "echo 'test' | bash credentials.generate.sh",
       "sudo ./ldop test basic",
     ]
   }
