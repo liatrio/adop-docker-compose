@@ -253,10 +253,10 @@ start_with_test_volumes() {
   echo " ...starting LDOP with temporary volumes..."
   if [ "$1" = false ]
   then
-    echo " Running /ldop compose init --without-pull"
+    echo " Running /ldop compose init "
     ${CONF_DIR}/ldop compose -p testldopdockercompose init
   else
-    echo "...-w flag specified; running init without-pull..."
+    echo "...-w flag specified; running init --without-pull..."
     echo " Running /ldop compose init"
     ${CONF_DIR}/ldop compose -p testldopdockercompose init --without-pull
   fi
