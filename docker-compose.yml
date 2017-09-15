@@ -44,7 +44,7 @@ services:
   proxy:
     container_name: proxy
     restart: always
-    image: liatrio/ldop-nginx:1.0.0
+    image: liatrio/ldop-nginx:1.0.1
     build: submodules/ldop-nginx
     depends_on:
       - "elasticsearch"
